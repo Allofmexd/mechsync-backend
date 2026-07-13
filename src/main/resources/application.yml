@@ -1,0 +1,36 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: mechsync-backend
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+  datasource:
+    url: ${MECHSYNC_DB_URL}
+    username: ${MECHSYNC_DB_USERNAME}
+    password: ${MECHSYNC_DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      connection-timeout: ${MECHSYNC_DB_CONNECTION_TIMEOUT:3000}
+      initialization-fail-timeout: ${MECHSYNC_DB_INITIALIZATION_FAIL_TIMEOUT:0}
+  jpa:
+    open-in-view: false
+    show-sql: ${MECHSYNC_JPA_SHOW_SQL:false}
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        boot:
+          allow_jdbc_metadata_access: false
+  sql:
+    init:
+      mode: never
+
+mechsync:
+  security:
+    jwt:
+      secret: ${MECHSYNC_JWT_SECRET}
+      expiration-minutes: ${MECHSYNC_JWT_EXPIRATION_MINUTES:120}
+      issuer: ${MECHSYNC_JWT_ISSUER:mechsync-backend}

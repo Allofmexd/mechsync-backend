@@ -1,0 +1,19 @@
+package com.mechsync.shared.web;
+
+public final class ApiPaths {
+
+    public static final String API_V1 = "/api/v1";
+    public static final String HEALTH = API_V1 + "/health";
+    public static final String HEALTH_DATABASE = HEALTH + "/database";
+    public static final String AUTH = API_V1 + "/auth";
+    public static final String AUTH_LOGIN = AUTH + "/login";
+    public static final String AUTH_ME = AUTH + "/me";
+    public static final String CUSTOMERS = API_V1 + "/customers";
+    public static final String USERS = API_V1 + "/users";
+    public static final String VEHICLES = API_V1 + "/vehicles";
+    public static final String VEHICLE_INTAKES = API_V1 + "/vehicle-intakes";
+    public static final String WORK_ORDERS = API_V1 + "/work-orders";
+
+    private ApiPaths() {
+    }
+}
