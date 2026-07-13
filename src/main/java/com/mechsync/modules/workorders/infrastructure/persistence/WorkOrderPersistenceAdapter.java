@@ -1,0 +1,33 @@
+package com.mechsync.modules.workorders.infrastructure.persistence;
+import com.mechsync.modules.workorders.application.dto.WorkOrderPage;
+import com.mechsync.modules.workorders.application.port.out.WorkOrderRepositoryPort;
+import com.mechsync.modules.workorders.domain.exception.WorkOrderInUseException;
+import com.mechsync.modules.workorders.domain.model.WorkOrder;
+import com.mechsync.modules.workorders.infrastructure.repository.WorkOrderJpaRepository;
+import java.util.Optional;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.*;
+import org.springframework.stereotype.Component;
+@Component
+public class WorkOrderPersistenceAdapter implements WorkOrderRepositoryPort {
+ private final WorkOrderJpaRepository repository;
+ public WorkOrderPersistenceAdapter(WorkOrderJpaRepository repository){this.repository=repository;}
+ @Override public WorkOrderPage findAll(int page,int size){Page<WorkOrderJpaEntity> r=repository.findAll(
+  PageRequest.of(page,size,Sort.by(Sort.Direction.ASC,"id")));return new WorkOrderPage(
+  r.getContent().stream().map(this::toDomain).toList(),r.getNumber(),r.getSize(),r.getTotalElements(),r.getTotalPages());}
+ @Override public Optional<WorkOrder> findById(Long id){return repository.findById(id).map(this::toDomain);}
+ @Override public boolean vehicleIntakeExists(Long id){return repository.countVehicleIntakesById(id)>0;}
+ @Override public boolean technicianExists(Long id){return repository.countTechniciansById(id)>0;}
+ @Override public boolean workOrderStatusExists(Long id){return repository.countWorkOrderStatusesById(id)>0;}
+ @Override public boolean hasDependencies(Long id){return repository.countDependenciesByWorkOrderId(id)>0;}
+ @Override public WorkOrder save(WorkOrder o){return toDomain(repository.saveAndFlush(new WorkOrderJpaEntity(o.id(),
+  o.vehicleIntakeId(),o.technicianId(),o.workOrderDate(),o.estimatedStartDate(),o.estimatedDeliveryDate(),
+  o.estimatedHours(),o.estimatedSubtotal(),o.estimatedIva(),o.estimatedTotal(),o.technicalObservations(),
+  o.statusId(),o.createdAt(),o.updatedAt())));}
+ @Override public void deleteById(Long id){try{repository.deleteById(id);repository.flush();}
+  catch(DataIntegrityViolationException e){throw new WorkOrderInUseException(id);}}
+ private WorkOrder toDomain(WorkOrderJpaEntity e){return new WorkOrder(e.getId(),e.getVehicleIntakeId(),
+  e.getTechnicianId(),e.getWorkOrderDate(),e.getEstimatedStartDate(),e.getEstimatedDeliveryDate(),
+  e.getEstimatedHours(),e.getEstimatedSubtotal(),e.getEstimatedIva(),e.getEstimatedTotal(),
+  e.getTechnicalObservations(),e.getStatusId(),e.getCreatedAt(),e.getUpdatedAt());}
+}
