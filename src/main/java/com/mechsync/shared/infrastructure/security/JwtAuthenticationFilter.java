@@ -14,6 +14,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.cors.CorsUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
@@ -29,6 +30,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             RestAuthenticationEntryPoint authenticationEntryPoint) {
         this.jwtService = jwtService;
         this.authenticationEntryPoint = authenticationEntryPoint;
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return CorsUtils.isPreFlightRequest(request);
     }
 
     @Override

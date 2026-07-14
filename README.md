@@ -35,6 +35,7 @@ nombre mediante `DB_NAME`; no definen un nombre fijo. Configura como mínimo:
 - `MECHSYNC_JWT_SECRET`
 - `MECHSYNC_JWT_EXPIRATION_MINUTES`
 - `MECHSYNC_JWT_ISSUER`
+- `MECHSYNC_CORS_ALLOWED_ORIGINS`
 
 3. Levanta la API desde cualquier ruta:
 
@@ -65,6 +66,20 @@ La aplicación nunca debe conectarse como `root`.
 
 `ddl-auto` está fijado en `none` y la inicialización SQL de Spring está desactivada. La aplicación
 no crea ni modifica el esquema.
+
+## CORS para el frontend local
+
+Los orígenes permitidos se configuran como una lista separada por comas. El valor de desarrollo
+predeterminado permite las dos direcciones habituales de Vite:
+
+```dotenv
+MECHSYNC_CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+```
+
+La configuración acepta los métodos REST utilizados por la API y el header `Authorization` para
+JWT Bearer, sin habilitar credenciales basadas en cookies. Los orígenes deben ser explícitos: el
+backend rechaza una configuración que contenga `*`. En cada ambiente configura únicamente los
+orígenes reales desde los que se servirá el frontend.
 
 ## Health checks
 
