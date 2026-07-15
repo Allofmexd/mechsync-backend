@@ -5,6 +5,7 @@ import com.mechsync.modules.customers.domain.exception.CustomerInUseException;
 import com.mechsync.modules.customers.domain.exception.CustomerNotFoundException;
 import com.mechsync.modules.customers.domain.exception.CustomerUserNotFoundException;
 import com.mechsync.modules.customers.domain.exception.DuplicateCustomerException;
+import com.mechsync.modules.catalogs.domain.exception.InvalidStatusContextException;
 import com.mechsync.modules.users.domain.exception.DuplicateUserEmailException;
 import com.mechsync.modules.users.domain.exception.InvalidUserRoleException;
 import com.mechsync.modules.users.domain.exception.RoleNotFoundException;
@@ -111,6 +112,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidUserRoleException.class)
     public ResponseEntity<ApiResponse<ErrorResponse>> handleInvalidRole(
             InvalidUserRoleException exception) {
+        return error(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+
+    @ExceptionHandler(InvalidStatusContextException.class)
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleInvalidStatusContext(
+            InvalidStatusContextException exception) {
         return error(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
 

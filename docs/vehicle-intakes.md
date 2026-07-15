@@ -32,6 +32,16 @@ cadena segura desde el `userId` del JWT.
 Estados existentes para este contexto: `EN_DIAGNOSTICO`, `EN_PROCESO`, `EN_ESPERA_PIEZAS`,
 `COMPLETADO` y `CANCELADO`. Debe enviarse el identificador existente, no el nombre.
 
+## Integración con catálogos y técnicos
+
+Antes de crear un ingreso, el frontend debe consultar
+`GET /api/v1/catalogs/statuses?context=VEHICLE_INTAKES` y usar como `statusId` el `id` de la opción
+seleccionada. Los IDs dependen del ambiente y no deben hardcodearse.
+
+El selector opcional de técnico se carga mediante `GET /api/v1/technicians`. Cuando no se asigna
+un técnico, `technicianId` puede omitirse o enviarse como `null`; cuando se asigna, debe utilizarse
+el `id` devuelto por ese endpoint.
+
 ## Ejemplos
 
 ```bash

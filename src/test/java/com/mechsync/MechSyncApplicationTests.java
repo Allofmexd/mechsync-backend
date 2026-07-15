@@ -1,12 +1,14 @@
 package com.mechsync;
 
 import com.mechsync.shared.application.health.DatabaseHealthChecker;
+import com.mechsync.modules.catalogs.infrastructure.repository.CatalogStatusJpaRepository;
 import com.mechsync.modules.customers.infrastructure.repository.CustomerJpaRepository;
 import com.mechsync.modules.users.infrastructure.repository.RoleJpaRepository;
 import com.mechsync.modules.users.infrastructure.repository.UserJpaRepository;
 import com.mechsync.modules.vehicles.infrastructure.repository.VehicleJpaRepository;
 import com.mechsync.modules.vehicleintakes.infrastructure.repository.VehicleIntakeJpaRepository;
 import com.mechsync.modules.workorders.infrastructure.repository.WorkOrderJpaRepository;
+import com.mechsync.modules.technicians.infrastructure.repository.TechnicianJpaRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -42,6 +44,12 @@ class MechSyncApplicationTests {
 
     @MockitoBean
     private WorkOrderJpaRepository workOrderJpaRepository;
+
+    @MockitoBean
+    private CatalogStatusJpaRepository catalogStatusJpaRepository;
+
+    @MockitoBean
+    private TechnicianJpaRepository technicianJpaRepository;
 
     @Test
     void contextLoads() {
