@@ -44,6 +44,10 @@ import com.mechsync.modules.technicians.domain.exception.TechnicianNotFoundExcep
 import com.mechsync.modules.technicians.domain.exception.TechnicianSpecialtyNotFoundException;
 import com.mechsync.modules.technicians.domain.exception.TechnicianUserNotFoundException;
 import com.mechsync.modules.technicians.domain.exception.TechnicianUserRoleRequiredException;
+import com.mechsync.modules.servicereports.domain.exception.ServiceReportConflictException;
+import com.mechsync.modules.servicereports.domain.exception.ServiceReportJobNotFoundException;
+import com.mechsync.modules.servicereports.domain.exception.ServiceReportNotFoundException;
+import com.mechsync.modules.servicereports.domain.exception.ServiceReportStatusNotFoundException;
 import com.mechsync.shared.web.response.ApiResponse;
 import com.mechsync.shared.web.response.ErrorResponse;
 import jakarta.validation.ConstraintViolationException;
@@ -119,7 +123,10 @@ public class GlobalExceptionHandler {
             JobLineNotFoundException.class,
             TechnicianNotFoundException.class,
             TechnicianSpecialtyNotFoundException.class,
-            TechnicianUserNotFoundException.class
+            TechnicianUserNotFoundException.class,
+            ServiceReportNotFoundException.class,
+            ServiceReportJobNotFoundException.class,
+            ServiceReportStatusNotFoundException.class
     })
     public ResponseEntity<ApiResponse<ErrorResponse>> handleNotFound(RuntimeException exception) {
         return error(HttpStatus.NOT_FOUND, exception.getMessage());
@@ -137,7 +144,8 @@ public class GlobalExceptionHandler {
             WorkOrderRevisionConflictException.class,
             JobConflictException.class,
             DuplicateTechnicianException.class,
-            TechnicianUserRoleRequiredException.class
+            TechnicianUserRoleRequiredException.class,
+            ServiceReportConflictException.class
     })
     public ResponseEntity<ApiResponse<ErrorResponse>> handleConflict(RuntimeException exception) {
         return error(HttpStatus.CONFLICT, exception.getMessage());
