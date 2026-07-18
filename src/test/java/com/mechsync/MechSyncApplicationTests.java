@@ -8,6 +8,11 @@ import com.mechsync.modules.users.infrastructure.repository.UserJpaRepository;
 import com.mechsync.modules.vehicles.infrastructure.repository.VehicleJpaRepository;
 import com.mechsync.modules.vehicleintakes.infrastructure.repository.VehicleIntakeJpaRepository;
 import com.mechsync.modules.workorders.infrastructure.repository.WorkOrderJpaRepository;
+import com.mechsync.modules.workorders.infrastructure.repository.WorkOrderRevisionJpaRepository;
+import com.mechsync.modules.workorders.infrastructure.repository.WorkOrderRevisionServiceJpaRepository;
+import com.mechsync.modules.workorders.infrastructure.repository.WorkOrderRevisionPartJpaRepository;
+import com.mechsync.modules.workorders.infrastructure.repository.WorkOrderRevisionStatusJpaRepository;
+import com.mechsync.modules.workorders.infrastructure.repository.WorkOrderAcceptanceMethodJpaRepository;
 import com.mechsync.modules.technicians.infrastructure.repository.TechnicianJpaRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -44,6 +49,21 @@ class MechSyncApplicationTests {
 
     @MockitoBean
     private WorkOrderJpaRepository workOrderJpaRepository;
+
+    @MockitoBean
+    private WorkOrderRevisionJpaRepository workOrderRevisionJpaRepository;
+
+    @MockitoBean
+    private WorkOrderRevisionServiceJpaRepository workOrderRevisionServiceJpaRepository;
+
+    @MockitoBean
+    private WorkOrderRevisionPartJpaRepository workOrderRevisionPartJpaRepository;
+
+    @MockitoBean
+    private WorkOrderRevisionStatusJpaRepository workOrderRevisionStatusJpaRepository;
+
+    @MockitoBean
+    private WorkOrderAcceptanceMethodJpaRepository workOrderAcceptanceMethodJpaRepository;
 
     @MockitoBean
     private CatalogStatusJpaRepository catalogStatusJpaRepository;

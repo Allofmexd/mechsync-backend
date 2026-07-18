@@ -62,6 +62,16 @@ curl -i -X POST http://localhost:8080/api/v1/work-orders \
 
 ## Pendientes
 
-Aunque existen `work_order_services` y `work_order_parts`, sus subrecursos no se exponen todavía.
-Antes de reemplazarlos debe definirse si el backend calcula autoritativamente subtotales, IVA y total,
-incluidas reglas de redondeo. Tampoco existe aún consulta propia para `CLIENTE`.
+Las tablas legacy `work_order_services` y `work_order_parts` no se exponen como subrecursos. Las
+nuevas líneas snapshot pertenecen a revisiones y sus importes se calculan autoritativamente en el
+backend. Tampoco existe aún consulta propia para `CLIENTE`.
+
+## Cotizaciones versionadas
+
+Las nuevas cotizaciones se gestionan como revisiones inmutables mediante endpoints aditivos bajo
+`/api/v1/work-orders/{workOrderId}/revisions`. La nueva API conserva snapshots de servicios y piezas,
+calcula los importes en servidor y separa la revisión vigente de la aprobación final.
+
+Los endpoints y campos de Work Orders existentes se mantienen por compatibilidad con el frontend.
+No se abre una ruta `/api/v2`: “Work Orders v2” identifica únicamente la evolución interna del
+modelo. El contrato completo está documentado en [Work Order Revisions](work-order-revisions.md).

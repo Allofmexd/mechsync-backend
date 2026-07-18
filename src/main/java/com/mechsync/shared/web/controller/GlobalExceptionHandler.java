@@ -27,6 +27,9 @@ import com.mechsync.modules.workorders.domain.exception.WorkOrderNotFoundExcepti
 import com.mechsync.modules.workorders.domain.exception.WorkOrderStatusNotFoundException;
 import com.mechsync.modules.workorders.domain.exception.WorkOrderTechnicianNotFoundException;
 import com.mechsync.modules.workorders.domain.exception.WorkOrderVehicleIntakeNotFoundException;
+import com.mechsync.modules.workorders.domain.exception.InvalidWorkOrderRevisionException;
+import com.mechsync.modules.workorders.domain.exception.WorkOrderRevisionConflictException;
+import com.mechsync.modules.workorders.domain.exception.WorkOrderRevisionNotFoundException;
 import com.mechsync.shared.web.response.ApiResponse;
 import com.mechsync.shared.web.response.ErrorResponse;
 import jakarta.validation.ConstraintViolationException;
@@ -43,6 +46,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -89,7 +93,8 @@ public class GlobalExceptionHandler {
             WorkOrderNotFoundException.class,
             WorkOrderVehicleIntakeNotFoundException.class,
             WorkOrderTechnicianNotFoundException.class,
-            WorkOrderStatusNotFoundException.class
+            WorkOrderStatusNotFoundException.class,
+            WorkOrderRevisionNotFoundException.class
     })
     public ResponseEntity<ApiResponse<ErrorResponse>> handleNotFound(RuntimeException exception) {
         return error(HttpStatus.NOT_FOUND, exception.getMessage());
@@ -103,7 +108,8 @@ public class GlobalExceptionHandler {
             DuplicateVehicleException.class,
             VehicleInUseException.class,
             VehicleIntakeInUseException.class,
-            WorkOrderInUseException.class
+            WorkOrderInUseException.class,
+            WorkOrderRevisionConflictException.class
     })
     public ResponseEntity<ApiResponse<ErrorResponse>> handleConflict(RuntimeException exception) {
         return error(HttpStatus.CONFLICT, exception.getMessage());
@@ -133,9 +139,20 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
 
+    @ExceptionHandler(InvalidWorkOrderRevisionException.class)
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleInvalidWorkOrderRevision(
+            InvalidWorkOrderRevisionException exception) {
+        return error(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+
     @ExceptionHandler({ConstraintViolationException.class, HandlerMethodValidationException.class})
     public ResponseEntity<ApiResponse<ErrorResponse>> handleMethodValidation() {
         return error(HttpStatus.BAD_REQUEST, "Validation failed");
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleNoResourceFound() {
+        return error(HttpStatus.NOT_FOUND, "Not found");
     }
 
     @ExceptionHandler(Exception.class)
