@@ -2,6 +2,7 @@ package com.mechsync.modules.technicians.web.controller;
 
 import com.mechsync.modules.technicians.domain.model.Technician;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Locale;
 
 public record TechnicianResponse(
@@ -15,7 +16,9 @@ public record TechnicianResponse(
         Long specialtyId,
         String specialtyCode,
         String specialtyName,
-        LocalDate hireDate) {
+        LocalDate hireDate,
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt) {
 
     public static TechnicianResponse from(Technician technician) {
         return new TechnicianResponse(
@@ -29,7 +32,9 @@ public record TechnicianResponse(
                 technician.specialtyId(),
                 technician.specialtyCode(),
                 readableName(technician.specialtyCode()),
-                technician.hireDate());
+                technician.hireDate(),
+                technician.createdAt(),
+                technician.updatedAt());
     }
 
     private static String readableName(String code) {

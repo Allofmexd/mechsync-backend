@@ -39,6 +39,11 @@ import com.mechsync.modules.jobs.domain.exception.JobTechnicianNotFoundException
 import com.mechsync.modules.jobs.domain.exception.JobWorkOrderNotFoundException;
 import com.mechsync.modules.jobs.domain.exception.JobLineCatalogNotFoundException;
 import com.mechsync.modules.jobs.domain.exception.JobLineNotFoundException;
+import com.mechsync.modules.technicians.domain.exception.DuplicateTechnicianException;
+import com.mechsync.modules.technicians.domain.exception.TechnicianNotFoundException;
+import com.mechsync.modules.technicians.domain.exception.TechnicianSpecialtyNotFoundException;
+import com.mechsync.modules.technicians.domain.exception.TechnicianUserNotFoundException;
+import com.mechsync.modules.technicians.domain.exception.TechnicianUserRoleRequiredException;
 import com.mechsync.shared.web.response.ApiResponse;
 import com.mechsync.shared.web.response.ErrorResponse;
 import jakarta.validation.ConstraintViolationException;
@@ -55,6 +60,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
@@ -110,7 +116,10 @@ public class GlobalExceptionHandler {
             JobTechnicianNotFoundException.class,
             JobWorkOrderNotFoundException.class,
             JobLineCatalogNotFoundException.class,
-            JobLineNotFoundException.class
+            JobLineNotFoundException.class,
+            TechnicianNotFoundException.class,
+            TechnicianSpecialtyNotFoundException.class,
+            TechnicianUserNotFoundException.class
     })
     public ResponseEntity<ApiResponse<ErrorResponse>> handleNotFound(RuntimeException exception) {
         return error(HttpStatus.NOT_FOUND, exception.getMessage());
@@ -126,7 +135,9 @@ public class GlobalExceptionHandler {
             VehicleIntakeInUseException.class,
             WorkOrderInUseException.class,
             WorkOrderRevisionConflictException.class,
-            JobConflictException.class
+            JobConflictException.class,
+            DuplicateTechnicianException.class,
+            TechnicianUserRoleRequiredException.class
     })
     public ResponseEntity<ApiResponse<ErrorResponse>> handleConflict(RuntimeException exception) {
         return error(HttpStatus.CONFLICT, exception.getMessage());
@@ -175,6 +186,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ApiResponse<ErrorResponse>> handleNoResourceFound() {
         return error(HttpStatus.NOT_FOUND, "Not found");
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleMethodNotSupported() {
+        return error(HttpStatus.METHOD_NOT_ALLOWED, "Method not allowed");
     }
 
     @ExceptionHandler(Exception.class)
