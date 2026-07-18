@@ -96,6 +96,10 @@ public class JobService implements CreateJobUseCase, JobQueryUseCase, JobWorkflo
         }
         JobMoneyValidator.Amounts amounts = moneyValidator.validate(
                 command.realSubtotalAmount(), command.realIvaAmount(), command.realTotalAmount());
+        if (amounts.subtotal().compareTo(job.realSubtotalAmount()) != 0) {
+            throw new InvalidJobException(
+                    "The final subtotal must match the sum of actual Job service and part lines");
+        }
         LocalDateTime now = LocalDateTime.now();
         String notes = trim(command.notes()) == null ? job.notes() : trim(command.notes());
         return repository.update(copy(job, JobStatus.COMPLETADO, job.startDate(), now, null,

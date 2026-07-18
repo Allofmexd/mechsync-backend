@@ -102,7 +102,13 @@ class JobServiceTest {
     }
 
     @Test void completesStartedJobWithValidatedBigDecimalAmounts() {
-        Job active = job(JobStatus.EN_PROCESO, LocalDateTime.now().minusHours(1));
+        Job source = job(JobStatus.EN_PROCESO, LocalDateTime.now().minusHours(1));
+        Job active = new Job(source.id(), source.workOrderId(), source.initialApprovedRevisionId(),
+                source.technicianId(), source.status(), source.scheduledStartDate(),
+                source.startDate(), source.completionDate(), source.cancelledAt(),
+                source.actualHours(), new BigDecimal("100.00"), BigDecimal.ZERO,
+                new BigDecimal("100.00"), source.notes(), source.cancellationNotes(),
+                source.createdAt(), source.updatedAt());
         when(repository.findByIdForUpdate(9L)).thenReturn(Optional.of(active));
         when(repository.requireStatusId(JobStatus.COMPLETADO)).thenReturn(13L);
         when(repository.update(any(), eq(13L))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -127,6 +133,14 @@ class JobServiceTest {
                 9L, new BigDecimal("-1.00"), BigDecimal.ZERO, BigDecimal.ZERO, null)));
         assertThrows(InvalidJobException.class, () -> service.complete(new CompleteJobCommand(
                 9L, new BigDecimal("10.00"), new BigDecimal("1.60"), new BigDecimal("99.00"), null)));
+    }
+
+    @Test void rejectsFinalSubtotalThatDoesNotMatchActualLines() {
+        Job active = job(JobStatus.EN_PROCESO, LocalDateTime.now().minusHours(1));
+        when(repository.findByIdForUpdate(9L)).thenReturn(Optional.of(active));
+        assertThrows(InvalidJobException.class, () -> service.complete(new CompleteJobCommand(
+                9L, new BigDecimal("10.00"), new BigDecimal("1.60"),
+                new BigDecimal("11.60"), null)));
     }
 
     @Test void cancelsPendingAndInProgressJobs() {

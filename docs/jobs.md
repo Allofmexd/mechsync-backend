@@ -113,6 +113,82 @@ subtotal más IVA. Cero es válido para garantía o trabajo sin cargo. Java usa 
 Permite `PENDIENTE → CANCELADO` y `EN_PROCESO → CANCELADO`, asigna `cancelledAt`, conserva
 `completionDate` en `null` y admite hasta 500 caracteres de notas.
 
+## Líneas reales de servicios y piezas
+
+Estas líneas representan lo realmente ejecutado o utilizado en el Job. Son independientes de las
+líneas snapshot de la Work Order Revision aprobada y nunca modifican la cotización autorizada.
+
+Todos los endpoints requieren `ADMINISTRADOR`:
+
+- `GET /api/v1/jobs/{jobId}/services`;
+- `POST /api/v1/jobs/{jobId}/services`;
+- `PUT /api/v1/jobs/{jobId}/services/{lineId}`;
+- `DELETE /api/v1/jobs/{jobId}/services/{lineId}`;
+- `GET /api/v1/jobs/{jobId}/parts`;
+- `POST /api/v1/jobs/{jobId}/parts`;
+- `PUT /api/v1/jobs/{jobId}/parts/{lineId}`;
+- `DELETE /api/v1/jobs/{jobId}/parts/{lineId}`.
+
+Las consultas se permiten en cualquier estado. Crear, actualizar o eliminar solo se permite en
+`PENDIENTE` o `EN_PROCESO`; un Job `COMPLETADO` o `CANCELADO` responde `409 Conflict`. Las búsquedas
+de línea siempre combinan `lineId` y `jobId`; una línea de otro Job se trata como no encontrada para
+evitar IDOR.
+
+### Servicio real
+
+Request de alta y actualización:
+
+```json
+{
+  "serviceId": 1,
+  "quantity": 1.00,
+  "unitPrice": 1200.00
+}
+```
+
+Response:
+
+```json
+{
+  "id": 1,
+  "jobId": 1,
+  "serviceId": 1,
+  "serviceName": "Cambio de aceite de transmisión",
+  "quantity": 1.00,
+  "unitPrice": 1200.00,
+  "lineSubtotal": 1200.00,
+  "createdAt": "2026-07-18T12:00:00",
+  "updatedAt": null
+}
+```
+
+### Pieza real
+
+Request de alta y actualización:
+
+```json
+{
+  "partId": 1,
+  "quantity": 1.00,
+  "unitPrice": 800.00
+}
+```
+
+La respuesta sustituye `serviceId/serviceName` por `partId/partName`. El esquema v1 no contiene
+una columna `notes` en `job_services` ni `job_parts`; por compatibilidad no se acepta ni se inventa
+ese campo en esta fase.
+
+Cantidad debe ser mayor que cero y precio unitario no negativo. Ambos admiten hasta dos decimales.
+El backend calcula `lineSubtotal = quantity * unitPrice`, redondeado a dos decimales con
+`BigDecimal`; el cliente no controla el subtotal. La restricción única permite una sola línea por
+servicio o pieza dentro del mismo Job.
+
+Después de cada alta, actualización o eliminación, el backend sincroniza `jobs.actual_subtotal` con
+la suma de `job_services.actual_subtotal + job_parts.actual_subtotal`, conserva `actual_iva` y
+recalcula `actual_total = actual_subtotal + actual_iva`. El endpoint de completar continúa siendo el
+cierre financiero, exige que el subtotal enviado coincida con la suma real de líneas y valida IVA y
+total. No se descuenta inventario ni stock.
+
 ## Respuesta
 
 ```json
@@ -161,6 +237,6 @@ duplicidad o conflicto concurrente responde `409`; datos inválidos responden `4
 ## Fuera de alcance
 
 - acceso y listado `assigned-to-me` para técnicos;
-- líneas reales `job_services` y `job_parts`;
 - Service Reports;
-- PDF, dashboards, frontend, inventario y portal cliente.
+- PDF, dashboards, frontend, inventario y portal cliente;
+- notas por línea, porque el esquema actual no ofrece esa columna.

@@ -12,6 +12,8 @@ import com.mechsync.modules.jobs.infrastructure.repository.JobJpaRepository;
 import com.mechsync.modules.workorders.infrastructure.persistence.WorkOrderRevisionJpaEntity;
 import com.mechsync.modules.workorders.infrastructure.repository.*;
 import java.util.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -128,6 +130,18 @@ public class JobPersistenceAdapter implements JobRepositoryPort {
             return toDomain(jobs.saveAndFlush(entity), statusMap());
         } catch (DataIntegrityViolationException exception) {
             throw new JobConflictException("The Job workflow update was rejected");
+        }
+    }
+
+    @Override
+    public void updateActualSubtotal(Long jobId, BigDecimal actualSubtotal) {
+        JobJpaEntity entity = jobs.findByIdForUpdate(jobId)
+                .orElseThrow(() -> new JobNotFoundException(jobId));
+        entity.applyActualSubtotal(actualSubtotal, LocalDateTime.now());
+        try {
+            jobs.saveAndFlush(entity);
+        } catch (DataIntegrityViolationException exception) {
+            throw new JobConflictException("The Job actual subtotal update was rejected");
         }
     }
 
