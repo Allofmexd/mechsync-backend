@@ -2,6 +2,7 @@ package com.mechsync.modules.jobs.infrastructure.persistence;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -77,6 +78,12 @@ public class JobJpaEntity {
         executionObservations = observations;
         cancellationNotes = cancellationReason;
         statusId = newStatusId;
+        updatedAt = updateTime;
+    }
+
+    public void applyActualSubtotal(BigDecimal subtotal, LocalDateTime updateTime) {
+        actualSubtotal = subtotal;
+        actualTotal = subtotal.add(actualIva).setScale(2, RoundingMode.HALF_UP);
         updatedAt = updateTime;
     }
 

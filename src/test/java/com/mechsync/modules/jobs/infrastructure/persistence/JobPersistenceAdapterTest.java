@@ -89,6 +89,19 @@ class JobPersistenceAdapterTest {
         assertEquals(7L, adapter.finalApprovedRevisionId(1L).orElseThrow());
     }
 
+    @Test
+    void synchronizesActualSubtotalAndTotalWithoutChangingIva() {
+        JobJpaEntity entity = entity();
+        when(jobs.findByIdForUpdate(5L)).thenReturn(Optional.of(entity));
+        when(jobs.saveAndFlush(entity)).thenReturn(entity);
+
+        adapter.updateActualSubtotal(5L, new BigDecimal("200.00"));
+
+        assertEquals(new BigDecimal("200.00"), entity.getActualSubtotal());
+        assertEquals(new BigDecimal("200.00"), entity.getActualTotal());
+        verify(jobs).saveAndFlush(entity);
+    }
+
     private Job job(Long id, JobStatus status) {
         return new Job(id, 1L, 7L, 3L, status, null, null, null, null, null,
                 new BigDecimal("0.00"), new BigDecimal("0.00"), new BigDecimal("0.00"),

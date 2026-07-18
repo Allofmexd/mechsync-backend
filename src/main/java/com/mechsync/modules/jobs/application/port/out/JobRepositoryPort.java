@@ -3,6 +3,7 @@ package com.mechsync.modules.jobs.application.port.out;
 import com.mechsync.modules.jobs.application.dto.JobPage;
 import com.mechsync.modules.jobs.domain.model.Job;
 import com.mechsync.modules.jobs.domain.model.JobStatus;
+import java.math.BigDecimal;
 import java.util.Optional;
 
 public interface JobRepositoryPort {
@@ -18,4 +19,5 @@ public interface JobRepositoryPort {
     Optional<Job> findById(Long id);
     Optional<Job> findByIdForUpdate(Long id);
     Job update(Job job, Long statusId);
+    void updateActualSubtotal(Long jobId, BigDecimal actualSubtotal);
 }

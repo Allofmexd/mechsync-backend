@@ -37,6 +37,8 @@ import com.mechsync.modules.jobs.domain.exception.JobRevisionNotFoundException;
 import com.mechsync.modules.jobs.domain.exception.JobStatusNotFoundException;
 import com.mechsync.modules.jobs.domain.exception.JobTechnicianNotFoundException;
 import com.mechsync.modules.jobs.domain.exception.JobWorkOrderNotFoundException;
+import com.mechsync.modules.jobs.domain.exception.JobLineCatalogNotFoundException;
+import com.mechsync.modules.jobs.domain.exception.JobLineNotFoundException;
 import com.mechsync.shared.web.response.ApiResponse;
 import com.mechsync.shared.web.response.ErrorResponse;
 import jakarta.validation.ConstraintViolationException;
@@ -106,7 +108,9 @@ public class GlobalExceptionHandler {
             JobRevisionNotFoundException.class,
             JobStatusNotFoundException.class,
             JobTechnicianNotFoundException.class,
-            JobWorkOrderNotFoundException.class
+            JobWorkOrderNotFoundException.class,
+            JobLineCatalogNotFoundException.class,
+            JobLineNotFoundException.class
     })
     public ResponseEntity<ApiResponse<ErrorResponse>> handleNotFound(RuntimeException exception) {
         return error(HttpStatus.NOT_FOUND, exception.getMessage());
