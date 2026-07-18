@@ -20,6 +20,7 @@ public final class ApiPaths {
     public static final String JOBS = API_V1 + "/jobs";
     public static final String SERVICES = API_V1 + "/services";
     public static final String PARTS = API_V1 + "/parts";
+    public static final String SERVICE_REPORTS = API_V1 + "/service-reports";
 
     private ApiPaths() {
     }
