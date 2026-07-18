@@ -2,6 +2,7 @@ package com.mechsync.shared.infrastructure.security;
 
 import com.mechsync.modules.auth.domain.model.AuthenticatedUser;
 import com.mechsync.modules.auth.infrastructure.security.JwtService;
+import com.mechsync.shared.web.ApiPaths;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -9,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -34,7 +36,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return CorsUtils.isPreFlightRequest(request);
+        return HttpMethod.OPTIONS.matches(request.getMethod())
+                || CorsUtils.isPreFlightRequest(request)
+                || (HttpMethod.POST.matches(request.getMethod())
+                        && ApiPaths.AUTH_LOGIN.equals(pathWithinApplication(request)));
+    }
+
+    private String pathWithinApplication(HttpServletRequest request) {
+        String requestUri = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        return contextPath.isEmpty() ? requestUri : requestUri.substring(contextPath.length());
     }
 
     @Override

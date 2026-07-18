@@ -2,10 +2,12 @@ package com.mechsync.modules.auth.web.controller;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.mechsync.modules.auth.application.dto.GeneratedToken;
@@ -24,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -75,12 +78,19 @@ class AuthControllerTest {
         when(loginUseCase.login(any())).thenThrow(new InvalidCredentialsException());
 
         mockMvc.perform(post("/api/v1/auth/login")
+                        .header(HttpHeaders.ORIGIN, "https://mechsync-frontend.vercel.app")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer stale-login-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email":"admin@example.com","password":"wrong-password"}
                                 """))
                 .andExpect(status().isUnauthorized())
+                .andExpect(header().string(
+                        HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN,
+                        "https://mechsync-frontend.vercel.app"))
                 .andExpect(jsonPath("$.data.message", is("Invalid credentials")));
+
+        verifyNoInteractions(jwtService);
     }
 
     @Test

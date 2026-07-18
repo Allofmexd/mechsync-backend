@@ -2,9 +2,11 @@ package com.mechsync.shared.web.controller;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.mechsync.shared.application.health.DatabaseHealthChecker;
@@ -17,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -51,6 +54,23 @@ class HealthControllerTest {
                 .andExpect(jsonPath("$.data.status", is("UP")))
                 .andExpect(jsonPath("$.data.application", is("mechsync-backend")))
                 .andExpect(jsonPath("$.data.timestamp", notNullValue()));
+    }
+
+    @Test
+    void returnsHealthStatusForVercelOriginWithCorsHeaders() throws Exception {
+        mockMvc.perform(get("/api/v1/health")
+                        .header(HttpHeaders.ORIGIN, "https://mechsync-frontend.vercel.app"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN,
+                        "https://mechsync-frontend.vercel.app"))
+                .andExpect(header().string(
+                        HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
+                        containsString(HttpHeaders.AUTHORIZATION)))
+                .andExpect(header().string(
+                        HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
+                        containsString(HttpHeaders.CONTENT_TYPE)))
+                .andExpect(header().doesNotExist(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS));
     }
 
     @Test
