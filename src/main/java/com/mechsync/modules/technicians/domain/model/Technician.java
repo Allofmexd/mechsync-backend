@@ -1,6 +1,7 @@
 package com.mechsync.modules.technicians.domain.model;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public record Technician(
         Long id,
@@ -11,5 +12,7 @@ public record Technician(
         String phone,
         Long specialtyId,
         String specialtyCode,
-        LocalDate hireDate) {
+        LocalDate hireDate,
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt) {
 }
