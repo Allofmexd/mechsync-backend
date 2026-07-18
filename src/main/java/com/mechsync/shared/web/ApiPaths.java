@@ -17,6 +17,7 @@ public final class ApiPaths {
     public static final String CATALOGS = API_V1 + "/catalogs";
     public static final String CATALOG_STATUSES = CATALOGS + "/statuses";
     public static final String TECHNICIANS = API_V1 + "/technicians";
+    public static final String JOBS = API_V1 + "/jobs";
 
     private ApiPaths() {
     }

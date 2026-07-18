@@ -1,0 +1,166 @@
+# Jobs / trabajos reales
+
+## Alcance
+
+El módulo Jobs registra el trabajo realmente ejecutado a partir de una cotización autorizada. En el
+MVP, un Job solo puede crearse desde la revisión `APPROVED` indicada por
+`work_orders.final_approved_revision_id`. La creación no modifica la Work Order Revision ni sus
+líneas snapshot.
+
+Todos los endpoints públicos permanecen bajo `/api/v1`; no existe una API `/api/v2`.
+
+## Dependencia de base de datos
+
+Antes de desplegar este backend, el ambiente debe tener aplicados y validados, en este orden:
+
+1. `v2/seeds/003_jobs_status_catalog.sql`;
+2. `v2/migrations/006_prepare_jobs_for_authorized_revisions.sql`;
+3. `v2/backfills/002_backfill_jobs_authorized_revisions.sql`;
+4. assertions `009_assert_jobs_schema.sql` y `010_assert_jobs_workflow.sql` o sus validaciones
+   operativas equivalentes.
+
+La implementación Java no ejecuta migraciones. Un backend Jobs desplegado antes de ese gate puede
+fallar por columnas, estados o triggers ausentes.
+
+## Autorización
+
+En esta fase todos los endpoints requieren `ADMINISTRADOR`.
+
+- Sin JWT: `401 Unauthorized`.
+- `TECNICO` o `CLIENTE`: `403 Forbidden`.
+
+El acceso técnico y `assigned-to-me` se mantienen pendientes hasta disponer de una política común y
+probada que resuelva usuario autenticado → técnico y aplique aislamiento por asignación sin IDOR.
+
+## Endpoints
+
+### Listar Jobs
+
+`GET /api/v1/jobs?page=0&size=20`
+
+`page` inicia en cero y `size` admite de 1 a 100. La respuesta incluye `content`, `page`, `size`,
+`totalElements` y `totalPages`.
+
+### Consultar Job
+
+`GET /api/v1/jobs/{id}`
+
+Devuelve `404` cuando el Job no existe.
+
+### Crear Job
+
+`POST /api/v1/jobs`
+
+```json
+{
+  "workOrderId": 1,
+  "initialApprovedRevisionId": 7,
+  "technicianId": 3,
+  "scheduledStartDate": "2026-07-20T09:00:00",
+  "notes": "Trabajo creado a partir de cotización aprobada."
+}
+```
+
+`workOrderId`, `initialApprovedRevisionId` y `technicianId` son obligatorios. Aunque la revisión
+puede contener un técnico, el Job exige su propio técnico porque `jobs.technician_id` es `NOT NULL`.
+La fecha programada es opcional y usa fecha-hora ISO-8601.
+
+Validaciones:
+
+- Work Order y técnico existentes;
+- revisión existente y perteneciente a la Work Order;
+- estado de revisión `APPROVED`;
+- coincidencia con `final_approved_revision_id`;
+- ausencia de otro Job para la Work Order o revisión autorizada;
+- estado inicial obtenido del catálogo `JOBS/PENDIENTE`, sin IDs hardcodeados.
+
+Responde `201 Created` y `Location: /api/v1/jobs/{id}`. Los importes reales nacen en `0.00`.
+
+### Iniciar Job
+
+`PATCH /api/v1/jobs/{id}/start`
+
+No requiere body. Ejecuta `PENDIENTE → EN_PROCESO` y asigna `startDate` con hora del servidor.
+
+### Completar Job
+
+`PATCH /api/v1/jobs/{id}/complete`
+
+```json
+{
+  "realSubtotalAmount": 1000.00,
+  "realIvaAmount": 160.00,
+  "realTotalAmount": 1160.00,
+  "notes": "Trabajo completado."
+}
+```
+
+Solo permite `EN_PROCESO → COMPLETADO`, exige inicio previo y asigna `completionDate`. Los importes
+son obligatorios, no negativos, se normalizan a dos decimales y el total debe ser exactamente
+subtotal más IVA. Cero es válido para garantía o trabajo sin cargo. Java usa `BigDecimal` y MySQL
+`DECIMAL(10,2)`; no se usa `float` ni `double`.
+
+### Cancelar Job
+
+`PATCH /api/v1/jobs/{id}/cancel`
+
+```json
+{
+  "cancellationNotes": "Cancelado por decisión del cliente."
+}
+```
+
+Permite `PENDIENTE → CANCELADO` y `EN_PROCESO → CANCELADO`, asigna `cancelledAt`, conserva
+`completionDate` en `null` y admite hasta 500 caracteres de notas.
+
+## Respuesta
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "workOrderId": 1,
+    "initialApprovedRevisionId": 7,
+    "technicianId": 3,
+    "status": "PENDIENTE",
+    "scheduledStartDate": "2026-07-20T09:00:00",
+    "startDate": null,
+    "completionDate": null,
+    "cancelledAt": null,
+    "actualHours": null,
+    "realSubtotalAmount": 0.00,
+    "realIvaAmount": 0.00,
+    "realTotalAmount": 0.00,
+    "notes": "Trabajo creado a partir de cotización aprobada.",
+    "cancellationNotes": null,
+    "createdAt": "2026-07-18T12:00:00",
+    "updatedAt": null
+  },
+  "error": null
+}
+```
+
+No se exponen entidades JPA, tokens, hashes ni credenciales.
+
+## Estados y conflictos
+
+Estados: `PENDIENTE`, `EN_PROCESO`, `COMPLETADO`, `CANCELADO`.
+
+Transiciones permitidas:
+
+- `PENDIENTE → EN_PROCESO`;
+- `PENDIENTE → CANCELADO`;
+- `EN_PROCESO → COMPLETADO`;
+- `EN_PROCESO → CANCELADO`.
+
+Los estados terminales no permiten nuevas transiciones. Las operaciones de workflow toman bloqueo
+pesimista y el esquema vuelve a validar integridad mediante triggers. Una transición inválida,
+duplicidad o conflicto concurrente responde `409`; datos inválidos responden `400`.
+
+## Fuera de alcance
+
+- acceso y listado `assigned-to-me` para técnicos;
+- líneas reales `job_services` y `job_parts`;
+- Service Reports;
+- PDF, dashboards, frontend, inventario y portal cliente.

@@ -30,6 +30,13 @@ import com.mechsync.modules.workorders.domain.exception.WorkOrderVehicleIntakeNo
 import com.mechsync.modules.workorders.domain.exception.InvalidWorkOrderRevisionException;
 import com.mechsync.modules.workorders.domain.exception.WorkOrderRevisionConflictException;
 import com.mechsync.modules.workorders.domain.exception.WorkOrderRevisionNotFoundException;
+import com.mechsync.modules.jobs.domain.exception.InvalidJobException;
+import com.mechsync.modules.jobs.domain.exception.JobConflictException;
+import com.mechsync.modules.jobs.domain.exception.JobNotFoundException;
+import com.mechsync.modules.jobs.domain.exception.JobRevisionNotFoundException;
+import com.mechsync.modules.jobs.domain.exception.JobStatusNotFoundException;
+import com.mechsync.modules.jobs.domain.exception.JobTechnicianNotFoundException;
+import com.mechsync.modules.jobs.domain.exception.JobWorkOrderNotFoundException;
 import com.mechsync.shared.web.response.ApiResponse;
 import com.mechsync.shared.web.response.ErrorResponse;
 import jakarta.validation.ConstraintViolationException;
@@ -94,7 +101,12 @@ public class GlobalExceptionHandler {
             WorkOrderVehicleIntakeNotFoundException.class,
             WorkOrderTechnicianNotFoundException.class,
             WorkOrderStatusNotFoundException.class,
-            WorkOrderRevisionNotFoundException.class
+            WorkOrderRevisionNotFoundException.class,
+            JobNotFoundException.class,
+            JobRevisionNotFoundException.class,
+            JobStatusNotFoundException.class,
+            JobTechnicianNotFoundException.class,
+            JobWorkOrderNotFoundException.class
     })
     public ResponseEntity<ApiResponse<ErrorResponse>> handleNotFound(RuntimeException exception) {
         return error(HttpStatus.NOT_FOUND, exception.getMessage());
@@ -109,7 +121,8 @@ public class GlobalExceptionHandler {
             VehicleInUseException.class,
             VehicleIntakeInUseException.class,
             WorkOrderInUseException.class,
-            WorkOrderRevisionConflictException.class
+            WorkOrderRevisionConflictException.class,
+            JobConflictException.class
     })
     public ResponseEntity<ApiResponse<ErrorResponse>> handleConflict(RuntimeException exception) {
         return error(HttpStatus.CONFLICT, exception.getMessage());
@@ -142,6 +155,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidWorkOrderRevisionException.class)
     public ResponseEntity<ApiResponse<ErrorResponse>> handleInvalidWorkOrderRevision(
             InvalidWorkOrderRevisionException exception) {
+        return error(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+
+    @ExceptionHandler(InvalidJobException.class)
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleInvalidJob(InvalidJobException exception) {
         return error(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
 
