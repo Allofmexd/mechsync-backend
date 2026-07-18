@@ -17,6 +17,8 @@ import com.mechsync.modules.technicians.infrastructure.repository.TechnicianJpaR
 import com.mechsync.modules.jobs.infrastructure.repository.JobJpaRepository;
 import com.mechsync.modules.jobs.infrastructure.repository.JobPartLineJpaRepository;
 import com.mechsync.modules.jobs.infrastructure.repository.JobServiceLineJpaRepository;
+import com.mechsync.modules.parts.infrastructure.repository.PartCatalogJpaRepository;
+import com.mechsync.modules.services.infrastructure.repository.ServiceCatalogJpaRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -82,6 +84,12 @@ class MechSyncApplicationTests {
 
     @MockitoBean
     private JobPartLineJpaRepository jobPartLineJpaRepository;
+
+    @MockitoBean
+    private ServiceCatalogJpaRepository serviceCatalogJpaRepository;
+
+    @MockitoBean
+    private PartCatalogJpaRepository partCatalogJpaRepository;
 
     @Test
     void contextLoads() {
