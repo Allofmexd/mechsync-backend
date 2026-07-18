@@ -20,10 +20,16 @@ public class WorkOrderPersistenceAdapter implements WorkOrderRepositoryPort {
  @Override public boolean technicianExists(Long id){return repository.countTechniciansById(id)>0;}
  @Override public boolean workOrderStatusExists(Long id){return repository.countWorkOrderStatusesById(id)>0;}
  @Override public boolean hasDependencies(Long id){return repository.countDependenciesByWorkOrderId(id)>0;}
- @Override public WorkOrder save(WorkOrder o){return toDomain(repository.saveAndFlush(new WorkOrderJpaEntity(o.id(),
-  o.vehicleIntakeId(),o.technicianId(),o.workOrderDate(),o.estimatedStartDate(),o.estimatedDeliveryDate(),
-  o.estimatedHours(),o.estimatedSubtotal(),o.estimatedIva(),o.estimatedTotal(),o.technicalObservations(),
-  o.statusId(),o.createdAt(),o.updatedAt())));}
+ @Override public WorkOrder save(WorkOrder o){
+  WorkOrderJpaEntity entity;
+  if(o.id()==null){entity=new WorkOrderJpaEntity(null,o.vehicleIntakeId(),o.technicianId(),o.workOrderDate(),
+   o.estimatedStartDate(),o.estimatedDeliveryDate(),o.estimatedHours(),o.estimatedSubtotal(),o.estimatedIva(),
+   o.estimatedTotal(),o.technicalObservations(),o.statusId(),o.createdAt(),o.updatedAt());}
+  else{entity=repository.findById(o.id()).orElseThrow(()->new com.mechsync.modules.workorders.domain.exception.WorkOrderNotFoundException(o.id()));
+   entity.updateLegacyFields(o.technicianId(),o.workOrderDate(),o.estimatedStartDate(),o.estimatedDeliveryDate(),
+    o.estimatedHours(),o.estimatedSubtotal(),o.estimatedIva(),o.estimatedTotal(),o.technicalObservations(),
+    o.statusId(),o.updatedAt());}
+  return toDomain(repository.saveAndFlush(entity));}
  @Override public void deleteById(Long id){try{repository.deleteById(id);repository.flush();}
   catch(DataIntegrityViolationException e){throw new WorkOrderInUseException(id);}}
  private WorkOrder toDomain(WorkOrderJpaEntity e){return new WorkOrder(e.getId(),e.getVehicleIntakeId(),

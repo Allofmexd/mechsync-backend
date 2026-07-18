@@ -13,6 +13,7 @@ public final class ApiPaths {
     public static final String VEHICLES = API_V1 + "/vehicles";
     public static final String VEHICLE_INTAKES = API_V1 + "/vehicle-intakes";
     public static final String WORK_ORDERS = API_V1 + "/work-orders";
+    public static final String WORK_ORDER_REVISIONS = WORK_ORDERS + "/{workOrderId}/revisions";
     public static final String CATALOGS = API_V1 + "/catalogs";
     public static final String CATALOG_STATUSES = CATALOGS + "/statuses";
     public static final String TECHNICIANS = API_V1 + "/technicians";
