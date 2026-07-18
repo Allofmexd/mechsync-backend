@@ -112,7 +112,11 @@ class AuthorizationSecurityTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"http://localhost:5173", "http://127.0.0.1:5173"})
+    @ValueSource(strings = {
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "https://mechsync-frontend.vercel.app"
+    })
     void allowedFrontendOriginsCanCompletePreflightWithoutAuthentication(String origin)
             throws Exception {
         mockMvc.perform(options("/api/v1/health")
@@ -137,23 +141,26 @@ class AuthorizationSecurityTest {
     @Test
     void loginPreflightDoesNotRequireAuthentication() throws Exception {
         mockMvc.perform(options("/api/v1/auth/login")
-                        .header(HttpHeaders.ORIGIN, "http://localhost:5173")
+                        .header(HttpHeaders.ORIGIN, "https://mechsync-frontend.vercel.app")
                         .header(
                                 HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD,
                                 HttpMethod.POST.name())
                         .header(
                                 HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS,
-                                HttpHeaders.CONTENT_TYPE.toLowerCase()))
+                                "content-type,authorization"))
                 .andExpect(status().isOk())
                 .andExpect(header().string(
                         HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN,
-                        "http://localhost:5173"))
+                        "https://mechsync-frontend.vercel.app"))
                 .andExpect(header().string(
                         HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS,
                         containsString(HttpMethod.POST.name())))
                 .andExpect(header().string(
                         HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS,
                         containsString(HttpHeaders.CONTENT_TYPE.toLowerCase())))
+                .andExpect(header().string(
+                        HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS,
+                        containsString(HttpHeaders.AUTHORIZATION.toLowerCase())))
                 .andExpect(header().doesNotExist(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS));
     }
 
@@ -198,7 +205,7 @@ class AuthorizationSecurityTest {
     @Test
     void unconfiguredOriginIsRejected() throws Exception {
         mockMvc.perform(options("/api/v1/auth/login")
-                        .header(HttpHeaders.ORIGIN, "http://malicious.example")
+                        .header(HttpHeaders.ORIGIN, "https://evil.example.com")
                         .header(
                                 HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD,
                                 HttpMethod.POST.name())
