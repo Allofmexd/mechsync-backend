@@ -23,7 +23,7 @@ public interface ServiceReportJpaRepository extends JpaRepository<ServiceReportJ
 
     @Query(value = """
             SELECT sr.id_service_reports AS reportId, sr.job_id AS jobId,
-                   report_status.code AS reportStatus, sr.report_date AS reportDate,
+                   report_status.name AS reportStatus, sr.report_date AS reportDate,
                    sr.final_description AS finalDescription,
                    sr.final_subtotal AS finalSubtotal, sr.final_iva AS finalIva,
                    sr.final_total AS finalTotal,
