@@ -8,7 +8,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.mechsync.modules.auth.domain.model.AuthenticatedUser;
 import com.mechsync.modules.auth.infrastructure.security.JwtService;
 import com.mechsync.modules.servicereports.application.dto.ServiceReportPage;
+import com.mechsync.modules.servicereports.application.dto.GeneratedServiceReportPdf;
 import com.mechsync.modules.servicereports.application.port.in.*;
+import com.mechsync.modules.servicereports.domain.exception.ServiceReportNotFoundException;
+import com.mechsync.modules.servicereports.domain.exception.ServiceReportPdfGenerationException;
 import com.mechsync.modules.servicereports.domain.model.*;
 import com.mechsync.shared.infrastructure.config.SecurityConfig;
 import com.mechsync.shared.infrastructure.security.*;
@@ -36,11 +39,14 @@ class ServiceReportControllerTest {
     @MockitoBean JwtService jwt;
     @MockitoBean ServiceReportQueryUseCase query;
     @MockitoBean CreateServiceReportUseCase create;
+    @MockitoBean GenerateServiceReportPdfUseCase pdf;
 
     @Test
     void noTokenIs401() throws Exception {
         mvc.perform(get("/api/v1/service-reports")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/v1/jobs/1/service-report")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/service-reports/1/pdf"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -51,10 +57,50 @@ class ServiceReportControllerTest {
                 .andExpect(status().isForbidden());
         mvc.perform(auth(get("/api/v1/service-reports"), "tech"))
                 .andExpect(status().isForbidden());
+        mvc.perform(auth(get("/api/v1/service-reports/1/pdf"), "client"))
+                .andExpect(status().isForbidden());
+        mvc.perform(auth(get("/api/v1/service-reports/1/pdf"), "tech"))
+                .andExpect(status().isForbidden());
         mvc.perform(auth(post("/api/v1/service-reports")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"jobId\":1,\"finalDescription\":\"Done\"}"), "tech"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void administratorCanDownloadPdfWithControlledHeaders() throws Exception {
+        token("admin", "ADMINISTRADOR");
+        byte[] content = "%PDF-1.7 test".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        when(pdf.generate(9L)).thenReturn(
+                new GeneratedServiceReportPdf("service-report-9.pdf", content));
+
+        mvc.perform(auth(get("/api/v1/service-reports/9/pdf"), "admin"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+                .andExpect(header().string("Content-Disposition",
+                        "attachment; filename=\"service-report-9.pdf\""))
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(content().bytes(content));
+    }
+
+    @Test
+    void missingReportPdfIs404() throws Exception {
+        token("admin", "ADMINISTRADOR");
+        when(pdf.generate(999L)).thenThrow(new ServiceReportNotFoundException(999L));
+
+        mvc.perform(auth(get("/api/v1/service-reports/999/pdf"), "admin"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void pdfGenerationFailureIsControlled500() throws Exception {
+        token("admin", "ADMINISTRADOR");
+        when(pdf.generate(9L)).thenThrow(
+                new ServiceReportPdfGenerationException("generation failed"));
+
+        mvc.perform(auth(get("/api/v1/service-reports/9/pdf"), "admin"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.data.message").value("Unexpected error"));
     }
 
     @Test
