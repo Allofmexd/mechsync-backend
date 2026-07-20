@@ -90,6 +90,65 @@ class ServiceReportPersistenceAdapterTest {
         assertThrows(ServiceReportConflictException.class, () -> adapter.insert(report(), 21L));
     }
 
+    @Test
+    void assemblesPdfDataFromReadOnlyOperationalProjections() {
+        ServiceReportPdfHeaderView header = mock(ServiceReportPdfHeaderView.class);
+        ServiceReportPdfServiceLineView service = mock(ServiceReportPdfServiceLineView.class);
+        ServiceReportPdfPartLineView part = mock(ServiceReportPdfPartLineView.class);
+        LocalDateTime now = LocalDateTime.of(2026, 7, 20, 12, 0);
+        when(header.getReportId()).thenReturn(9L);
+        when(header.getJobId()).thenReturn(1L);
+        when(header.getReportStatus()).thenReturn("COMPLETADO");
+        when(header.getReportDate()).thenReturn(now);
+        when(header.getFinalDescription()).thenReturn("Trabajo completado");
+        when(header.getFinalSubtotal()).thenReturn(new BigDecimal("3660.00"));
+        when(header.getFinalIva()).thenReturn(new BigDecimal("585.60"));
+        when(header.getFinalTotal()).thenReturn(new BigDecimal("4245.60"));
+        when(header.getCustomerConfirmation()).thenReturn(true);
+        when(header.getWorkOrderId()).thenReturn(1L);
+        when(header.getVehicleIntakeId()).thenReturn(2L);
+        when(header.getTechnicianId()).thenReturn(3L);
+        when(header.getTechnicianName()).thenReturn("Tecnico QA");
+        when(header.getCustomerId()).thenReturn(4L);
+        when(header.getCustomerName()).thenReturn("Cliente QA");
+        when(header.getVehicleId()).thenReturn(5L);
+        when(header.getVehicleBrand()).thenReturn("Nissan");
+        when(header.getVehicleModel()).thenReturn("Sentra");
+        when(header.getVehicleYear()).thenReturn(2010);
+        when(header.getLicensePlate()).thenReturn("QA-001");
+        when(header.getVin()).thenReturn("QA-VIN");
+        when(header.getMileage()).thenReturn(100000);
+        when(service.getName()).thenReturn("Cambio de aceite");
+        when(service.getQuantity()).thenReturn(BigDecimal.ONE);
+        when(service.getUnitPrice()).thenReturn(new BigDecimal("1200.00"));
+        when(service.getSubtotal()).thenReturn(new BigDecimal("1200.00"));
+        when(part.getName()).thenReturn("Filtro");
+        when(part.getQuantity()).thenReturn(BigDecimal.ONE);
+        when(part.getMeasurementUnit()).thenReturn("PIEZA");
+        when(part.getUnitPrice()).thenReturn(new BigDecimal("800.00"));
+        when(part.getSubtotal()).thenReturn(new BigDecimal("800.00"));
+        when(reports.findPdfHeader(9L)).thenReturn(Optional.of(header));
+        when(reports.findPdfServices(9L)).thenReturn(List.of(service));
+        when(reports.findPdfParts(9L)).thenReturn(List.of(part));
+
+        ServiceReportPdfData result = adapter.findPdfDataByReportId(9L).orElseThrow();
+
+        assertEquals(ServiceReportStatus.COMPLETADO, result.reportStatus());
+        assertEquals("Tecnico QA", result.technicianName());
+        assertEquals("Cambio de aceite", result.services().get(0).name());
+        assertEquals("PIEZA", result.parts().get(0).measurementUnit());
+        assertEquals(new BigDecimal("4245.60"), result.finalTotal());
+    }
+
+    @Test
+    void missingPdfHeaderDoesNotLoadLines() {
+        when(reports.findPdfHeader(99L)).thenReturn(Optional.empty());
+
+        assertTrue(adapter.findPdfDataByReportId(99L).isEmpty());
+        verify(reports, never()).findPdfServices(anyLong());
+        verify(reports, never()).findPdfParts(anyLong());
+    }
+
     private ServiceReport report() {
         LocalDateTime now = LocalDateTime.now();
         return new ServiceReport(null, 1L, ServiceReportStatus.COMPLETADO, now,

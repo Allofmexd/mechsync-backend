@@ -24,10 +24,11 @@ cliente queda fuera del MVP actual.
 |---|---|---|
 | GET | `/api/v1/service-reports?page=0&size=20` | Lista paginada, ordenada por ID descendente |
 | GET | `/api/v1/service-reports/{id}` | Consulta por ID |
+| GET | `/api/v1/service-reports/{id}/pdf` | Genera y descarga el PDF del reporte |
 | GET | `/api/v1/jobs/{jobId}/service-report` | Consulta el reporte unico de un Job |
 | POST | `/api/v1/service-reports` | Crea el cierre desde un Job completado |
 
-No se exponen `PUT`, `PATCH`, `DELETE`, PDF ni generacion de archivos.
+No se exponen `PUT`, `PATCH` ni `DELETE`.
 
 ## Creacion
 
@@ -82,10 +83,39 @@ de garantia o sin cargo puede cerrar con importes en cero; el Job sigue siendo l
 
 No se exponen entidades JPA, tokens, hashes ni credenciales.
 
+## Descarga PDF
+
+`GET /api/v1/service-reports/{id}/pdf` genera el documento en memoria para un reporte existente.
+Requiere rol `ADMINISTRADOR`; sin JWT responde `401` y `TECNICO`/`CLIENTE` reciben `403`.
+Un ID inexistente responde `404`.
+
+La respuesta exitosa es binaria:
+
+- `Content-Type: application/pdf`;
+- `Content-Disposition: attachment; filename="service-report-{id}.pdf"`;
+- `Cache-Control: no-store`.
+
+Ejemplo, sin registrar el JWT en el historial del comando:
+
+```bash
+curl --fail --show-error \
+  -H "Authorization: Bearer $TOKEN" \
+  -o service-report-1.pdf \
+  http://localhost:8080/api/v1/service-reports/1/pdf
+```
+
+El PDF incluye identificadores del reporte, Job, Work Order e ingreso; estado y fechas; descripcion
+final; cliente, tecnico y vehiculo; kilometraje disponible; servicios y piezas reales; unidad de las
+piezas; subtotal, IVA y total. Cuando no hay lineas muestra un estado vacio explicito. Los importes
+provienen del Service Report y se mantienen como `BigDecimal`/`DECIMAL`.
+
+El documento se genera con Apache PDFBox y no se persiste en disco ni en base de datos. La descarga
+no modifica `service_reports`, Jobs, lineas reales o Work Order Revisions. Tampoco genera correo,
+almacenamiento S3, firmas digitales, imagenes o evidencias.
+
 ## Limites de la fase
 
-- frontend de Service Reports;
-- PDF y descarga de archivos;
+- descarga del PDF desde frontend;
 - correo, firmas digitales e imagenes;
 - recomendaciones estructuradas, porque la columna no existe;
 - edicion posterior al cierre;

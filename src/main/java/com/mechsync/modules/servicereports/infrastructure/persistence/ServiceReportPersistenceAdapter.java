@@ -3,7 +3,7 @@ package com.mechsync.modules.servicereports.infrastructure.persistence;
 import com.mechsync.modules.catalogs.infrastructure.persistence.CatalogStatusJpaEntity;
 import com.mechsync.modules.catalogs.infrastructure.repository.CatalogStatusJpaRepository;
 import com.mechsync.modules.servicereports.application.dto.*;
-import com.mechsync.modules.servicereports.application.port.out.ServiceReportRepositoryPort;
+import com.mechsync.modules.servicereports.application.port.out.*;
 import com.mechsync.modules.servicereports.domain.exception.*;
 import com.mechsync.modules.servicereports.domain.model.*;
 import com.mechsync.modules.servicereports.infrastructure.repository.*;
@@ -14,7 +14,8 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ServiceReportPersistenceAdapter implements ServiceReportRepositoryPort {
+public class ServiceReportPersistenceAdapter
+        implements ServiceReportRepositoryPort, ServiceReportPdfDataPort {
     private static final String CONTEXT = "SERVICE_REPORTS";
     private final ServiceReportJpaRepository reports;
     private final CatalogStatusJpaRepository statuses;
@@ -80,6 +81,29 @@ public class ServiceReportPersistenceAdapter implements ServiceReportRepositoryP
         return reports.findByJobId(jobId).map(value -> toDomain(value, statusMap));
     }
 
+    @Override
+    public Optional<ServiceReportPdfData> findPdfDataByReportId(Long reportId) {
+        return reports.findPdfHeader(reportId).map(header -> new ServiceReportPdfData(
+                header.getReportId(), header.getJobId(), parseStatus(header.getReportStatus()),
+                header.getReportDate(), header.getFinalDescription(), header.getFinalSubtotal(),
+                header.getFinalIva(), header.getFinalTotal(),
+                Boolean.TRUE.equals(header.getCustomerConfirmation()), header.getDeliveredAt(),
+                header.getWorkOrderId(), header.getVehicleIntakeId(), header.getTechnicianId(),
+                header.getTechnicianName(), header.getCustomerId(), header.getCustomerName(),
+                header.getVehicleId(), header.getVehicleBrand(), header.getVehicleModel(),
+                header.getVehicleYear(), header.getLicensePlate(), header.getVin(),
+                header.getMileage(),
+                reports.findPdfServices(reportId).stream()
+                        .map(line -> new ServiceReportPdfData.ServiceLine(line.getName(),
+                                line.getQuantity(), line.getUnitPrice(), line.getSubtotal()))
+                        .toList(),
+                reports.findPdfParts(reportId).stream()
+                        .map(line -> new ServiceReportPdfData.PartLine(line.getName(),
+                                line.getQuantity(), line.getMeasurementUnit(), line.getUnitPrice(),
+                                line.getSubtotal()))
+                        .toList()));
+    }
+
     private List<CatalogStatusJpaEntity> statusEntities() {
         return statuses.findAllByContextOrderByIdAsc(CONTEXT);
     }
@@ -105,5 +129,14 @@ public class ServiceReportPersistenceAdapter implements ServiceReportRepositoryP
                 entity.getReportDate(), entity.getFinalDescription(), entity.getFinalSubtotal(),
                 entity.getFinalIva(), entity.getFinalTotal(), entity.isCustomerConfirmation(),
                 entity.getDeliveredAt(), entity.getCreatedAt(), entity.getUpdatedAt());
+    }
+
+    private ServiceReportStatus parseStatus(String code) {
+        try {
+            return ServiceReportStatus.valueOf(code);
+        } catch (IllegalArgumentException | NullPointerException exception) {
+            throw new ServiceReportConflictException(
+                    "Unsupported SERVICE_REPORTS status: " + code);
+        }
     }
 }
