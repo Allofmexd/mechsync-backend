@@ -16,6 +16,7 @@ import java.util.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -85,6 +86,29 @@ class ServiceReportPersistenceAdapterTest {
     }
 
     @Test
+    void assignedQueriesFilterByTechnicianInRepository() {
+        ServiceReportJpaEntity entity = entity();
+        ReflectionTestUtils.setField(entity, "id", 9L);
+        CatalogStatusJpaEntity completed = status(21L, "COMPLETADO");
+        when(statuses.findAllByContextOrderByIdAsc("SERVICE_REPORTS"))
+                .thenReturn(List.of(completed));
+        when(reports.findAllByTechnicianId(eq(3L), any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(entity)));
+        when(reports.findByIdAndTechnicianId(9L, 3L)).thenReturn(Optional.of(entity));
+        when(reports.findByJobIdAndTechnicianId(1L, 3L)).thenReturn(Optional.of(entity));
+
+        assertEquals(1, adapter.findAllByTechnicianId(3L, 0, 20).content().size());
+        assertEquals(9L, adapter.findByIdAndTechnicianId(9L, 3L).orElseThrow().id());
+        assertEquals(1L, adapter.findByJobIdAndTechnicianId(1L, 3L).orElseThrow().jobId());
+        ArgumentCaptor<org.springframework.data.domain.Pageable> pageable =
+                ArgumentCaptor.forClass(org.springframework.data.domain.Pageable.class);
+        verify(reports).findAllByTechnicianId(eq(3L), pageable.capture());
+        assertEquals(0, pageable.getValue().getPageNumber());
+        assertEquals(20, pageable.getValue().getPageSize());
+        assertTrue(pageable.getValue().getSort().isUnsorted());
+    }
+
+    @Test
     void translatesUniqueConstraintViolationToConflict() {
         when(reports.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("unique"));
         assertThrows(ServiceReportConflictException.class, () -> adapter.insert(report(), 21L));
@@ -145,6 +169,16 @@ class ServiceReportPersistenceAdapterTest {
         when(reports.findPdfHeader(99L)).thenReturn(Optional.empty());
 
         assertTrue(adapter.findPdfDataByReportId(99L).isEmpty());
+        verify(reports, never()).findPdfServices(anyLong());
+        verify(reports, never()).findPdfParts(anyLong());
+    }
+
+    @Test
+    void assignedPdfQueryDoesNotLoadLinesForForeignReport() {
+        when(reports.findPdfHeaderAssignedToTechnician(9L, 4L))
+                .thenReturn(Optional.empty());
+
+        assertTrue(adapter.findPdfDataByReportIdAndTechnicianId(9L, 4L).isEmpty());
         verify(reports, never()).findPdfServices(anyLong());
         verify(reports, never()).findPdfParts(anyLong());
     }

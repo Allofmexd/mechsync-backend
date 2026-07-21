@@ -50,6 +50,26 @@ public interface TechnicianJpaRepository extends JpaRepository<TechnicianJpaEnti
     Optional<TechnicianDetailsProjection> findDetailsById(
             @Param("technicianId") Long technicianId);
 
+    @Query(value = """
+            SELECT
+                t.id_technicians AS id,
+                t.user_id AS userId,
+                u.first_name AS firstName,
+                u.last_name AS lastName,
+                u.email AS email,
+                u.phone AS phone,
+                s.id_specialties AS specialtyId,
+                s.name AS specialtyCode,
+                t.hire_date AS hireDate,
+                t.created_at AS createdAt,
+                t.updated_at AS updatedAt
+            FROM technicians t
+            INNER JOIN users u ON u.id_users = t.user_id
+            INNER JOIN specialties s ON s.id_specialties = t.specialty_id
+            WHERE t.user_id = :userId
+            """, nativeQuery = true)
+    Optional<TechnicianDetailsProjection> findDetailsByUserId(@Param("userId") Long userId);
+
     boolean existsByUserId(Long userId);
 
     @Query(value = "SELECT COUNT(*) FROM users WHERE id_users = :userId", nativeQuery = true)

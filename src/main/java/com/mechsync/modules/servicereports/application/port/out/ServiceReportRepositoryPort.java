@@ -12,6 +12,9 @@ public interface ServiceReportRepositoryPort {
     Long requireStatusId(ServiceReportStatus status);
     ServiceReport insert(ServiceReport report, Long statusId);
     ServiceReportPage findAll(int page, int size);
+    ServiceReportPage findAllByTechnicianId(Long technicianId, int page, int size);
     Optional<ServiceReport> findById(Long reportId);
+    Optional<ServiceReport> findByIdAndTechnicianId(Long reportId, Long technicianId);
     Optional<ServiceReport> findByJobId(Long jobId);
+    Optional<ServiceReport> findByJobIdAndTechnicianId(Long jobId, Long technicianId);
 }

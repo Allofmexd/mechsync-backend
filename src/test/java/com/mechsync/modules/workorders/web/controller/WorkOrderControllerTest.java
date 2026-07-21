@@ -9,6 +9,8 @@ import com.mechsync.modules.workorders.application.dto.WorkOrderPage;
 import com.mechsync.modules.workorders.application.port.in.*;
 import com.mechsync.modules.workorders.domain.exception.WorkOrderNotFoundException;
 import com.mechsync.modules.workorders.domain.model.WorkOrder;
+import com.mechsync.modules.technicians.application.port.in.ResolveAuthenticatedTechnicianUseCase;
+import com.mechsync.modules.technicians.domain.exception.TechnicianProfileRequiredException;
 import com.mechsync.shared.infrastructure.config.SecurityConfig;
 import com.mechsync.shared.infrastructure.security.*;
 import com.mechsync.shared.web.controller.GlobalExceptionHandler;
@@ -30,19 +32,33 @@ class WorkOrderControllerTest {
  @Autowired MockMvc mvc;@MockitoBean JwtService jwt;@MockitoBean ListWorkOrdersUseCase list;
  @MockitoBean GetWorkOrderByIdUseCase get;@MockitoBean CreateWorkOrderUseCase create;
  @MockitoBean UpdateWorkOrderUseCase update;@MockitoBean DeleteWorkOrderUseCase delete;
- @Test void noTokenIs401()throws Exception{mvc.perform(get(path())).andExpect(status().isUnauthorized());}
- @Test void technicianCanReadCreateUpdate()throws Exception{token("tech","TECNICO");stubs();
-  mvc.perform(auth(get(path()),"tech")).andExpect(status().isOk());mvc.perform(auth(get(path()+"/1"),"tech")).andExpect(status().isOk());
-  mvc.perform(auth(post(path()).contentType(MediaType.APPLICATION_JSON).content(createBody()),"tech")).andExpect(status().isCreated());
-  mvc.perform(auth(put(path()+"/1").contentType(MediaType.APPLICATION_JSON).content(updateBody()),"tech")).andExpect(status().isOk());}
+ @MockitoBean ResolveAuthenticatedTechnicianUseCase technicianResolver;
+ @Test void noTokenIs401()throws Exception{mvc.perform(get(path())).andExpect(status().isUnauthorized());
+  mvc.perform(get(path()+"/assigned-to-me")).andExpect(status().isUnauthorized());}
+ @Test void technicianUsesOnlyAssignedEndpointsAndCannotWrite()throws Exception{token("tech","TECNICO");assignedStubs();
+  mvc.perform(auth(get(path()),"tech")).andExpect(status().isForbidden());
+  mvc.perform(auth(get(path()+"/assigned-to-me"),"tech")).andExpect(status().isOk())
+   .andExpect(jsonPath("$.data.totalElements").value(1));
+  mvc.perform(auth(get(path()+"/1"),"tech")).andExpect(status().isOk());
+  mvc.perform(auth(post(path()).contentType(MediaType.APPLICATION_JSON).content(createBody()),"tech")).andExpect(status().isForbidden());
+  mvc.perform(auth(put(path()+"/1").contentType(MediaType.APPLICATION_JSON).content(updateBody()),"tech")).andExpect(status().isForbidden());}
+ @Test void technicianGets404ForForeignOrder()throws Exception{token("tech","TECNICO");
+  when(technicianResolver.resolveId(any())).thenReturn(2L);
+  when(get.getAssignedTo(99L,2L)).thenThrow(new WorkOrderNotFoundException(99L));
+  mvc.perform(auth(get(path()+"/99"),"tech")).andExpect(status().isNotFound());}
+ @Test void technicianWithoutProfileGetsControlled403()throws Exception{token("tech","TECNICO");
+  when(technicianResolver.resolveId(any())).thenThrow(new TechnicianProfileRequiredException());
+  mvc.perform(auth(get(path()+"/assigned-to-me"),"tech")).andExpect(status().isForbidden());}
  @Test void technicianCannotDelete()throws Exception{token("tech","TECNICO");mvc.perform(auth(delete(path()+"/1"),"tech")).andExpect(status().isForbidden());}
  @Test void clientCannotReadOrCreate()throws Exception{token("client","CLIENTE");mvc.perform(auth(get(path()),"client")).andExpect(status().isForbidden());
+  mvc.perform(auth(get(path()+"/assigned-to-me"),"client")).andExpect(status().isForbidden());
   mvc.perform(auth(post(path()).contentType(MediaType.APPLICATION_JSON).content(createBody()),"client")).andExpect(status().isForbidden());}
  @Test void adminCanOperateAll()throws Exception{token("admin","ADMINISTRADOR");stubs();
   mvc.perform(auth(get(path()),"admin")).andExpect(status().isOk());mvc.perform(auth(get(path()+"/1"),"admin")).andExpect(status().isOk());
   mvc.perform(auth(post(path()).contentType(MediaType.APPLICATION_JSON).content(createBody()),"admin")).andExpect(status().isCreated());
   mvc.perform(auth(put(path()+"/1").contentType(MediaType.APPLICATION_JSON).content(updateBody()),"admin")).andExpect(status().isOk());
-  mvc.perform(auth(delete(path()+"/1"),"admin")).andExpect(status().isNoContent());}
+  mvc.perform(auth(delete(path()+"/1"),"admin")).andExpect(status().isNoContent());
+  org.mockito.Mockito.verifyNoInteractions(technicianResolver);}
  @Test void invalidRequestIs400()throws Exception{token("admin","ADMINISTRADOR");mvc.perform(auth(post(path())
   .contentType(MediaType.APPLICATION_JSON).content("{\"vehicleIntakeId\":0,\"technicianId\":0,\"estimatedSubtotal\":-1,\"estimatedIva\":-1,\"estimatedTotal\":-1,\"statusId\":0}"),"admin"))
   .andExpect(status().isBadRequest());}
@@ -50,6 +66,9 @@ class WorkOrderControllerTest {
   mvc.perform(auth(get(path()+"/99"),"admin")).andExpect(status().isNotFound());}
  private void stubs(){when(list.list(0,20)).thenReturn(new WorkOrderPage(List.of(order()),0,20,1,1));when(get.getById(1L)).thenReturn(order());
   when(create.create(any())).thenReturn(order());when(update.update(any())).thenReturn(order());}
+ private void assignedStubs(){when(technicianResolver.resolveId(any())).thenReturn(2L);
+  when(list.listAssignedTo(2L,0,20)).thenReturn(new WorkOrderPage(List.of(order()),0,20,1,1));
+  when(get.getAssignedTo(1L,2L)).thenReturn(order());}
  private void token(String t,String role){when(jwt.parse(t)).thenReturn(new AuthenticatedUser(1L,"user@mechsync.local",Set.of(role)));}
  private MockHttpServletRequestBuilder auth(MockHttpServletRequestBuilder r,String t){return r.header("Authorization","Bearer "+t);}
  private String path(){return "/api/v1/work-orders";}

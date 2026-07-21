@@ -10,6 +10,8 @@ public interface TechnicianRepositoryPort {
 
     Optional<Technician> findById(Long technicianId);
 
+    Optional<Technician> findByUserId(Long userId);
+
     boolean userExists(Long userId);
 
     boolean userHasRole(Long userId, String roleName);

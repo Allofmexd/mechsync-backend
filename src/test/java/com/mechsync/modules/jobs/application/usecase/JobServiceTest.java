@@ -95,6 +95,22 @@ class JobServiceTest {
         assertNotNull(result.startDate());
     }
 
+    @Test void listsAndGetsOnlyJobsAssignedToTechnician() {
+        Job assigned = job(JobStatus.PENDIENTE, null);
+        JobPage page = new JobPage(java.util.List.of(assigned), 0, 20, 1, 1);
+        when(repository.findAllByTechnicianId(3L, 0, 20)).thenReturn(page);
+        when(repository.findByIdAndTechnicianId(9L, 3L)).thenReturn(Optional.of(assigned));
+
+        assertEquals(page, service.listAssignedTo(3L, 0, 20));
+        assertEquals(assigned, service.getAssignedTo(9L, 3L));
+    }
+
+    @Test void foreignJobIsHiddenAsNotFound() {
+        when(repository.findByIdAndTechnicianId(9L, 4L)).thenReturn(Optional.empty());
+
+        assertThrows(JobNotFoundException.class, () -> service.getAssignedTo(9L, 4L));
+    }
+
     @Test void cannotStartTerminalJob() {
         when(repository.findByIdForUpdate(9L))
                 .thenReturn(Optional.of(job(JobStatus.COMPLETADO, LocalDateTime.now())));

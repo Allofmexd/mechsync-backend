@@ -25,6 +25,18 @@ public class GenerateServiceReportPdfService implements GenerateServiceReportPdf
     public GeneratedServiceReportPdf generate(Long reportId) {
         var data = dataPort.findPdfDataByReportId(reportId)
                 .orElseThrow(() -> new ServiceReportNotFoundException(reportId));
+        return generate(reportId, data);
+    }
+
+    @Override
+    public GeneratedServiceReportPdf generateAssignedTo(Long reportId, Long technicianId) {
+        var data = dataPort.findPdfDataByReportIdAndTechnicianId(reportId, technicianId)
+                .orElseThrow(() -> new ServiceReportNotFoundException(reportId));
+        return generate(reportId, data);
+    }
+
+    private GeneratedServiceReportPdf generate(Long reportId,
+            com.mechsync.modules.servicereports.domain.model.ServiceReportPdfData data) {
         byte[] content = generator.generate(data);
         if (content == null || content.length == 0) {
             throw new ServiceReportPdfGenerationException("The generated PDF is empty");

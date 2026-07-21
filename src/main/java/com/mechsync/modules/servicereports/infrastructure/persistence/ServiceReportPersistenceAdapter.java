@@ -70,9 +70,27 @@ public class ServiceReportPersistenceAdapter
     }
 
     @Override
+    public ServiceReportPage findAllByTechnicianId(Long technicianId, int page, int size) {
+        Page<ServiceReportJpaEntity> result = reports.findAllByTechnicianId(technicianId,
+                PageRequest.of(page, size));
+        Map<Long, ServiceReportStatus> statusMap = statusMap();
+        return new ServiceReportPage(result.getContent().stream()
+                .map(value -> toDomain(value, statusMap)).toList(), result.getNumber(),
+                result.getSize(), result.getTotalElements(), result.getTotalPages());
+    }
+
+    @Override
     public Optional<ServiceReport> findById(Long reportId) {
         Map<Long, ServiceReportStatus> statusMap = statusMap();
         return reports.findById(reportId).map(value -> toDomain(value, statusMap));
+    }
+
+    @Override
+    public Optional<ServiceReport> findByIdAndTechnicianId(
+            Long reportId, Long technicianId) {
+        Map<Long, ServiceReportStatus> statusMap = statusMap();
+        return reports.findByIdAndTechnicianId(reportId, technicianId)
+                .map(value -> toDomain(value, statusMap));
     }
 
     @Override
@@ -82,8 +100,27 @@ public class ServiceReportPersistenceAdapter
     }
 
     @Override
+    public Optional<ServiceReport> findByJobIdAndTechnicianId(Long jobId, Long technicianId) {
+        Map<Long, ServiceReportStatus> statusMap = statusMap();
+        return reports.findByJobIdAndTechnicianId(jobId, technicianId)
+                .map(value -> toDomain(value, statusMap));
+    }
+
+    @Override
     public Optional<ServiceReportPdfData> findPdfDataByReportId(Long reportId) {
-        return reports.findPdfHeader(reportId).map(header -> new ServiceReportPdfData(
+        return reports.findPdfHeader(reportId).map(header -> assemblePdfData(reportId, header));
+    }
+
+    @Override
+    public Optional<ServiceReportPdfData> findPdfDataByReportIdAndTechnicianId(
+            Long reportId, Long technicianId) {
+        return reports.findPdfHeaderAssignedToTechnician(reportId, technicianId)
+                .map(header -> assemblePdfData(reportId, header));
+    }
+
+    private ServiceReportPdfData assemblePdfData(
+            Long reportId, ServiceReportPdfHeaderView header) {
+        return new ServiceReportPdfData(
                 header.getReportId(), header.getJobId(), parseStatus(header.getReportStatus()),
                 header.getReportDate(), header.getFinalDescription(), header.getFinalSubtotal(),
                 header.getFinalIva(), header.getFinalTotal(),
@@ -101,7 +138,7 @@ public class ServiceReportPersistenceAdapter
                         .map(line -> new ServiceReportPdfData.PartLine(line.getName(),
                                 line.getQuantity(), line.getMeasurementUnit(), line.getUnitPrice(),
                                 line.getSubtotal()))
-                        .toList()));
+                        .toList());
     }
 
     private List<CatalogStatusJpaEntity> statusEntities() {

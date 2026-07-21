@@ -18,8 +18,10 @@ import com.mechsync.modules.technicians.application.dto.UpdateTechnicianCommand;
 import com.mechsync.modules.technicians.application.port.in.CreateTechnicianUseCase;
 import com.mechsync.modules.technicians.application.port.in.GetTechnicianByIdUseCase;
 import com.mechsync.modules.technicians.application.port.in.ListTechniciansUseCase;
+import com.mechsync.modules.technicians.application.port.in.ResolveAuthenticatedTechnicianUseCase;
 import com.mechsync.modules.technicians.application.port.in.UpdateTechnicianUseCase;
 import com.mechsync.modules.technicians.domain.exception.TechnicianNotFoundException;
+import com.mechsync.modules.technicians.domain.exception.TechnicianProfileRequiredException;
 import com.mechsync.modules.technicians.domain.model.Technician;
 import com.mechsync.shared.infrastructure.config.SecurityConfig;
 import com.mechsync.shared.infrastructure.security.JwtAuthenticationFilter;
@@ -71,9 +73,13 @@ class TechnicianControllerTest {
     @MockitoBean
     private UpdateTechnicianUseCase updateTechnicianUseCase;
 
+    @MockitoBean
+    private ResolveAuthenticatedTechnicianUseCase authenticatedTechnicianResolver;
+
     @Test
     void requestWithoutTokenReturnsUnauthorized() throws Exception {
         mockMvc.perform(get(path())).andExpect(status().isUnauthorized());
+        mockMvc.perform(get(path() + "/me")).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -91,12 +97,29 @@ class TechnicianControllerTest {
     }
 
     @Test
-    void technicianCanListTechnicians() throws Exception {
+    void technicianCannotUseGlobalListAndCanReadOwnProfile() throws Exception {
         tokenRepresents("technician-token", "TECNICO");
-        when(listTechniciansUseCase.list()).thenReturn(List.of(technician()));
+        when(authenticatedTechnicianResolver.resolve(anyAuthenticatedUser()))
+                .thenReturn(technician());
 
         mockMvc.perform(authenticated(get(path()), "technician-token"))
-                .andExpect(status().isOk());
+                .andExpect(status().isForbidden());
+        mockMvc.perform(authenticated(get(path() + "/me"), "technician-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id", is(1)))
+                .andExpect(jsonPath("$.data.userId", is(3)));
+    }
+
+    @Test
+    void technicianWithoutProfileGetsControlledForbidden() throws Exception {
+        tokenRepresents("technician-token", "TECNICO");
+        when(authenticatedTechnicianResolver.resolve(anyAuthenticatedUser()))
+                .thenThrow(new TechnicianProfileRequiredException());
+
+        mockMvc.perform(authenticated(get(path() + "/me"), "technician-token"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.data.message",
+                        is("Authenticated technician profile is required")));
     }
 
     @Test
@@ -106,6 +129,8 @@ class TechnicianControllerTest {
         mockMvc.perform(authenticated(get(path()), "customer-token"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.data.message", is("Forbidden")));
+        mockMvc.perform(authenticated(get(path() + "/me"), "customer-token"))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -248,5 +273,9 @@ class TechnicianControllerTest {
 
     private String path() {
         return "/api/v1/technicians";
+    }
+
+    private AuthenticatedUser anyAuthenticatedUser() {
+        return org.mockito.ArgumentMatchers.any(AuthenticatedUser.class);
     }
 }

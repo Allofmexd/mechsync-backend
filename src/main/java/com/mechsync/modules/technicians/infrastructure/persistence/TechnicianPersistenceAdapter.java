@@ -30,6 +30,11 @@ public class TechnicianPersistenceAdapter implements TechnicianRepositoryPort {
     }
 
     @Override
+    public Optional<Technician> findByUserId(Long userId) {
+        return repository.findDetailsByUserId(userId).map(this::toDomain);
+    }
+
+    @Override
     public boolean userExists(Long userId) {
         return repository.countUsersById(userId) > 0;
     }

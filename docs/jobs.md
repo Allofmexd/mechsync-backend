@@ -24,13 +24,14 @@ fallar por columnas, estados o triggers ausentes.
 
 ## Autorización
 
-En esta fase todos los endpoints requieren `ADMINISTRADOR`.
+`ADMINISTRADOR` conserva listados, detalles y mutaciones globales. `TECNICO` puede listar mediante
+`GET /api/v1/jobs/assigned-to-me` y consultar `GET /api/v1/jobs/{id}` únicamente cuando el Job está
+asignado a su perfil. El filtro se aplica en repositorio; un Job ajeno responde `404`.
 
 - Sin JWT: `401 Unauthorized`.
-- `TECNICO` o `CLIENTE`: `403 Forbidden`.
-
-El acceso técnico y `assigned-to-me` se mantienen pendientes hasta disponer de una política común y
-probada que resuelva usuario autenticado → técnico y aplique aislamiento por asignación sin IDOR.
+- `CLIENTE`: `403 Forbidden`.
+- `TECNICO` sin perfil operativo: `403 Forbidden`.
+- El listado global y todas las mutaciones continúan reservados a `ADMINISTRADOR`.
 
 ## Endpoints
 
@@ -40,6 +41,9 @@ probada que resuelva usuario autenticado → técnico y aplique aislamiento por 
 
 `page` inicia en cero y `size` admite de 1 a 100. La respuesta incluye `content`, `page`, `size`,
 `totalElements` y `totalPages`.
+
+Para `TECNICO`, `GET /api/v1/jobs/assigned-to-me?page=0&size=20` devuelve la misma estructura
+paginada, limitada por `jobs.technician_id` al perfil derivado del JWT.
 
 ### Consultar Job
 
@@ -236,7 +240,6 @@ duplicidad o conflicto concurrente responde `409`; datos inválidos responden `4
 
 ## Fuera de alcance
 
-- acceso y listado `assigned-to-me` para técnicos;
 - Service Reports;
 - PDF, dashboards, frontend, inventario y portal cliente;
 - notas por línea, porque el esquema actual no ofrece esa columna.

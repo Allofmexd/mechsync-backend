@@ -3,6 +3,8 @@ package com.mechsync.modules.jobs.web.controller;
 import com.mechsync.modules.jobs.application.dto.*;
 import com.mechsync.modules.jobs.application.port.in.*;
 import com.mechsync.modules.jobs.domain.model.Job;
+import com.mechsync.modules.auth.domain.model.AuthenticatedUser;
+import com.mechsync.modules.technicians.application.port.in.ResolveAuthenticatedTechnicianUseCase;
 import com.mechsync.shared.web.ApiPaths;
 import com.mechsync.shared.web.response.ApiResponse;
 import jakarta.validation.Valid;
@@ -10,38 +12,58 @@ import jakarta.validation.constraints.*;
 import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @Validated
 @RequestMapping(ApiPaths.JOBS)
-@PreAuthorize("hasRole('ADMINISTRADOR')")
 public class JobController {
     private final JobQueryUseCase query;
     private final CreateJobUseCase create;
     private final JobWorkflowUseCase workflow;
+    private final ResolveAuthenticatedTechnicianUseCase technicianResolver;
 
     public JobController(JobQueryUseCase query, CreateJobUseCase create,
-            JobWorkflowUseCase workflow) {
+            JobWorkflowUseCase workflow,
+            ResolveAuthenticatedTechnicianUseCase technicianResolver) {
         this.query = query;
         this.create = create;
         this.workflow = workflow;
+        this.technicianResolver = technicianResolver;
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ApiResponse<JobPageResponse> list(
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
         return ApiResponse.ok(JobPageResponse.from(query.list(page, size)));
     }
 
+    @GetMapping("/assigned-to-me")
+    @PreAuthorize("hasRole('TECNICO')")
+    public ApiResponse<JobPageResponse> assignedToMe(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+            @AuthenticationPrincipal AuthenticatedUser user) {
+        return ApiResponse.ok(JobPageResponse.from(query.listAssignedTo(
+                technicianResolver.resolveId(user), page, size)));
+    }
+
     @GetMapping("/{id}")
-    public ApiResponse<JobResponse> get(@PathVariable @Positive Long id) {
-        return ApiResponse.ok(JobResponse.from(query.get(id)));
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','TECNICO')")
+    public ApiResponse<JobResponse> get(@PathVariable @Positive Long id,
+            @AuthenticationPrincipal AuthenticatedUser user) {
+        Job job = user.roles().contains("ADMINISTRADOR")
+                ? query.get(id)
+                : query.getAssignedTo(id, technicianResolver.resolveId(user));
+        return ApiResponse.ok(JobResponse.from(job));
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<ApiResponse<JobResponse>> create(
             @Valid @RequestBody CreateJobRequest request) {
         Job job = create.create(new CreateJobCommand(request.workOrderId(),
@@ -52,11 +74,13 @@ public class JobController {
     }
 
     @PatchMapping("/{id}/start")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ApiResponse<JobResponse> start(@PathVariable @Positive Long id) {
         return ApiResponse.ok(JobResponse.from(workflow.start(id)));
     }
 
     @PatchMapping("/{id}/complete")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ApiResponse<JobResponse> complete(@PathVariable @Positive Long id,
             @Valid @RequestBody CompleteJobRequest request) {
         return ApiResponse.ok(JobResponse.from(workflow.complete(new CompleteJobCommand(id,
@@ -65,6 +89,7 @@ public class JobController {
     }
 
     @PatchMapping("/{id}/cancel")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ApiResponse<JobResponse> cancel(@PathVariable @Positive Long id,
             @Valid @RequestBody CancelJobRequest request) {
         return ApiResponse.ok(JobResponse.from(

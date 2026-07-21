@@ -15,7 +15,13 @@ public class WorkOrderPersistenceAdapter implements WorkOrderRepositoryPort {
  @Override public WorkOrderPage findAll(int page,int size){Page<WorkOrderJpaEntity> r=repository.findAll(
   PageRequest.of(page,size,Sort.by(Sort.Direction.ASC,"id")));return new WorkOrderPage(
   r.getContent().stream().map(this::toDomain).toList(),r.getNumber(),r.getSize(),r.getTotalElements(),r.getTotalPages());}
+ @Override public WorkOrderPage findAllByTechnicianId(Long technicianId,int page,int size){
+  Page<WorkOrderJpaEntity> r=repository.findAllByTechnicianId(technicianId,
+   PageRequest.of(page,size,Sort.by(Sort.Direction.ASC,"id")));return new WorkOrderPage(
+   r.getContent().stream().map(this::toDomain).toList(),r.getNumber(),r.getSize(),r.getTotalElements(),r.getTotalPages());}
  @Override public Optional<WorkOrder> findById(Long id){return repository.findById(id).map(this::toDomain);}
+ @Override public Optional<WorkOrder> findByIdAndTechnicianId(Long id,Long technicianId){
+  return repository.findByIdAndTechnicianId(id,technicianId).map(this::toDomain);}
  @Override public boolean vehicleIntakeExists(Long id){return repository.countVehicleIntakesById(id)>0;}
  @Override public boolean technicianExists(Long id){return repository.countTechniciansById(id)>0;}
  @Override public boolean workOrderStatusExists(Long id){return repository.countWorkOrderStatusesById(id)>0;}

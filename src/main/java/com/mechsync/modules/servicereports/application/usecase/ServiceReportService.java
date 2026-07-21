@@ -48,14 +48,31 @@ public class ServiceReportService implements CreateServiceReportUseCase, Service
     }
 
     @Override
+    public ServiceReportPage listAssignedTo(Long technicianId, int page, int size) {
+        return repository.findAllByTechnicianId(technicianId, page, size);
+    }
+
+    @Override
     public ServiceReport get(Long reportId) {
         return repository.findById(reportId)
                 .orElseThrow(() -> new ServiceReportNotFoundException(reportId));
     }
 
     @Override
+    public ServiceReport getAssignedTo(Long reportId, Long technicianId) {
+        return repository.findByIdAndTechnicianId(reportId, technicianId)
+                .orElseThrow(() -> new ServiceReportNotFoundException(reportId));
+    }
+
+    @Override
     public ServiceReport getByJobId(Long jobId) {
         return repository.findByJobId(jobId)
+                .orElseThrow(() -> ServiceReportNotFoundException.forJob(jobId));
+    }
+
+    @Override
+    public ServiceReport getByJobIdAssignedTo(Long jobId, Long technicianId) {
+        return repository.findByJobIdAndTechnicianId(jobId, technicianId)
                 .orElseThrow(() -> ServiceReportNotFoundException.forJob(jobId));
     }
 }

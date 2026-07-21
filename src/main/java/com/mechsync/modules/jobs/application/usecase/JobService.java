@@ -71,8 +71,19 @@ public class JobService implements CreateJobUseCase, JobQueryUseCase, JobWorkflo
     }
 
     @Override
+    public JobPage listAssignedTo(Long technicianId, int page, int size) {
+        return repository.findAllByTechnicianId(technicianId, page, size);
+    }
+
+    @Override
     public Job get(Long id) {
         return repository.findById(id).orElseThrow(() -> new JobNotFoundException(id));
+    }
+
+    @Override
+    public Job getAssignedTo(Long id, Long technicianId) {
+        return repository.findByIdAndTechnicianId(id, technicianId)
+                .orElseThrow(() -> new JobNotFoundException(id));
     }
 
     @Override

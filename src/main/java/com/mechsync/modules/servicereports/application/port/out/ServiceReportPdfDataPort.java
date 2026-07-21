@@ -5,4 +5,6 @@ import java.util.Optional;
 
 public interface ServiceReportPdfDataPort {
     Optional<ServiceReportPdfData> findPdfDataByReportId(Long reportId);
+    Optional<ServiceReportPdfData> findPdfDataByReportIdAndTechnicianId(
+            Long reportId, Long technicianId);
 }

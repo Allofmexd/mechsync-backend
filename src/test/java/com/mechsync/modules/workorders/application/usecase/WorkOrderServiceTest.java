@@ -9,6 +9,7 @@ import com.mechsync.modules.workorders.domain.model.WorkOrder;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.List;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -31,6 +32,13 @@ class WorkOrderServiceTest {
   assertThrows(WorkOrderStatusNotFoundException.class,()->service.create(command(1L,2L,7L)));}
  @Test void missingOrderThrowsNotFound(){when(repository.findById(99L)).thenReturn(Optional.empty());
   assertThrows(WorkOrderNotFoundException.class,()->service.getById(99L));}
+ @Test void listsOnlyOrdersAssignedToTechnician(){WorkOrderPage page=new WorkOrderPage(List.of(order()),0,20,1,1);
+  when(repository.findAllByTechnicianId(2L,0,20)).thenReturn(page);
+  assertEquals(page,service.listAssignedTo(2L,0,20));}
+ @Test void getsAssignedOrderAndHidesForeignOrder(){when(repository.findByIdAndTechnicianId(1L,2L)).thenReturn(Optional.of(order()));
+  assertEquals(1L,service.getAssignedTo(1L,2L).id());
+  when(repository.findByIdAndTechnicianId(99L,2L)).thenReturn(Optional.empty());
+  assertThrows(WorkOrderNotFoundException.class,()->service.getAssignedTo(99L,2L));}
  @Test void updatePreservesIntake(){when(repository.findById(1L)).thenReturn(Optional.of(order()));validReferences();
   when(repository.save(any())).thenAnswer(i->i.getArgument(0));WorkOrder result=service.update(new UpdateWorkOrderCommand(
    1L,2L,null,null,null,new BigDecimal("3.00"),new BigDecimal("200.00"),new BigDecimal("32.00"),

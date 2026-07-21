@@ -107,6 +107,30 @@ class ServiceReportServiceTest {
         assertEquals(page, service.list(0, 20));
     }
 
+    @Test
+    void listsAndGetsReportsAssignedToTechnician() {
+        ServiceReport report = report();
+        ServiceReportPage page = new ServiceReportPage(List.of(report), 0, 20, 1, 1);
+        when(repository.findAllByTechnicianId(3L, 0, 20)).thenReturn(page);
+        when(repository.findByIdAndTechnicianId(9L, 3L)).thenReturn(Optional.of(report));
+        when(repository.findByJobIdAndTechnicianId(1L, 3L)).thenReturn(Optional.of(report));
+
+        assertEquals(page, service.listAssignedTo(3L, 0, 20));
+        assertEquals(report, service.getAssignedTo(9L, 3L));
+        assertEquals(report, service.getByJobIdAssignedTo(1L, 3L));
+    }
+
+    @Test
+    void hidesForeignReportsAndJobsAsNotFound() {
+        when(repository.findByIdAndTechnicianId(9L, 4L)).thenReturn(Optional.empty());
+        when(repository.findByJobIdAndTechnicianId(1L, 4L)).thenReturn(Optional.empty());
+
+        assertThrows(ServiceReportNotFoundException.class,
+                () -> service.getAssignedTo(9L, 4L));
+        assertThrows(ServiceReportNotFoundException.class,
+                () -> service.getByJobIdAssignedTo(1L, 4L));
+    }
+
     private CreateServiceReportCommand command(LocalDateTime deliveredAt) {
         return new CreateServiceReportCommand(1L, "  Trabajo completado correctamente.  ",
                 true, deliveredAt);

@@ -13,7 +13,8 @@ en esta fase.
 
 | Método | Ruta | ADMINISTRADOR | TECNICO | CLIENTE |
 |---|---|---:|---:|---:|
-| GET | `/api/v1/technicians` | Sí | Sí | No |
+| GET | `/api/v1/technicians` | Sí | No | No |
+| GET | `/api/v1/technicians/me` | No | Sí | No |
 | GET | `/api/v1/technicians/{id}` | Sí | No | No |
 | POST | `/api/v1/technicians` | Sí | No | No |
 | PUT | `/api/v1/technicians/{id}` | Sí | No | No |
@@ -92,8 +93,9 @@ Los IDs del ejemplo son ilustrativos y deben obtenerse del ambiente consultado.
 }
 ```
 
-`GET /api/v1/technicians` conserva el contrato de lista simple bajo `data` para no romper el
-frontend existente.
+`GET /api/v1/technicians` conserva el contrato de lista simple bajo `data` para el administrador.
+`GET /api/v1/technicians/me` obtiene el perfil mediante el `userId` del principal JWT; no acepta un
+Technician ID desde el cliente. Un usuario `TECNICO` sin perfil recibe `403` controlado.
 
 ## Errores de dominio
 
@@ -107,8 +109,8 @@ frontend existente.
 
 - No hay frontend administrativo de perfiles Technician todavía.
 - No hay eliminación de perfiles.
-- No se implementa `assigned-to-me`.
-- No se implementan Service Reports, PDF ni `/api/v2`.
+- La administración del perfil continúa reservada a `ADMINISTRADOR`.
+- No existe `/api/v2`.
 
 Estos endpoints desbloquean el flujo E2E operativo que requiere `technicianId` real para Work Orders
 y Jobs.

@@ -13,10 +13,13 @@ import com.mechsync.modules.technicians.application.dto.UpdateTechnicianCommand;
 import com.mechsync.modules.technicians.application.port.out.TechnicianRepositoryPort;
 import com.mechsync.modules.technicians.domain.exception.DuplicateTechnicianException;
 import com.mechsync.modules.technicians.domain.exception.TechnicianNotFoundException;
+import com.mechsync.modules.technicians.domain.exception.TechnicianProfileRequiredException;
 import com.mechsync.modules.technicians.domain.exception.TechnicianSpecialtyNotFoundException;
 import com.mechsync.modules.technicians.domain.exception.TechnicianUserNotFoundException;
 import com.mechsync.modules.technicians.domain.exception.TechnicianUserRoleRequiredException;
 import com.mechsync.modules.technicians.domain.model.Technician;
+import com.mechsync.modules.auth.domain.model.AuthenticatedUser;
+import java.util.Set;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -111,6 +114,32 @@ class TechnicianServiceTest {
         when(repository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(TechnicianNotFoundException.class, () -> service.getById(99L));
+    }
+
+    @Test
+    void resolvesAuthenticatedTechnicianByJwtUserId() {
+        Technician technician = technician(1L, 7L, 1L, null);
+        when(repository.findByUserId(7L)).thenReturn(Optional.of(technician));
+
+        Technician result = service.resolve(new AuthenticatedUser(
+                7L, "tech@mechsync.local", Set.of("TECNICO")));
+
+        assertEquals(technician, result);
+    }
+
+    @Test
+    void technicianWithoutProfileIsRejected() {
+        when(repository.findByUserId(7L)).thenReturn(Optional.empty());
+
+        assertThrows(TechnicianProfileRequiredException.class, () -> service.resolve(
+                new AuthenticatedUser(7L, "tech@mechsync.local", Set.of("TECNICO"))));
+    }
+
+    @Test
+    void nonTechnicianPrincipalCannotResolveProfile() {
+        assertThrows(TechnicianProfileRequiredException.class, () -> service.resolve(
+                new AuthenticatedUser(1L, "admin@mechsync.local", Set.of("ADMINISTRADOR"))));
+        verify(repository, never()).findByUserId(any());
     }
 
     @Test
