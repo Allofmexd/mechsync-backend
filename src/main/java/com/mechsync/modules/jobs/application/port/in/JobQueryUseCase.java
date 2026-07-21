@@ -5,5 +5,7 @@ import com.mechsync.modules.jobs.domain.model.Job;
 
 public interface JobQueryUseCase {
     JobPage list(int page, int size);
+    JobPage listAssignedTo(Long technicianId, int page, int size);
     Job get(Long id);
+    Job getAssignedTo(Long id, Long technicianId);
 }

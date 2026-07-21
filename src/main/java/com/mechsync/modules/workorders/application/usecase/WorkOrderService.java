@@ -15,8 +15,15 @@ public class WorkOrderService implements ListWorkOrdersUseCase,GetWorkOrderByIdU
     private final WorkOrderRepositoryPort repository;
     public WorkOrderService(WorkOrderRepositoryPort repository) { this.repository=repository; }
     @Override public WorkOrderPage list(int page,int size) { return repository.findAll(page,size); }
+    @Override public WorkOrderPage listAssignedTo(Long technicianId,int page,int size) {
+        return repository.findAllByTechnicianId(technicianId,page,size);
+    }
     @Override public WorkOrder getById(Long id) { return repository.findById(id)
             .orElseThrow(() -> new WorkOrderNotFoundException(id)); }
+    @Override public WorkOrder getAssignedTo(Long id,Long technicianId) {
+        return repository.findByIdAndTechnicianId(id,technicianId)
+                .orElseThrow(() -> new WorkOrderNotFoundException(id));
+    }
     @Override @Transactional public WorkOrder create(CreateWorkOrderCommand c) {
         validateReferences(c.vehicleIntakeId(),c.technicianId(),c.statusId());
         validateDates(c.estimatedStartDate(),c.estimatedDeliveryDate());

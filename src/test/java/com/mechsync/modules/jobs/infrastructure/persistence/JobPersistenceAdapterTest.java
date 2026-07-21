@@ -68,6 +68,22 @@ class JobPersistenceAdapterTest {
     }
 
     @Test
+    void assignedQueriesAreExecutedInRepositoryWithPagination() {
+        CatalogStatusJpaEntity pending = status(11L, "PENDIENTE");
+        JobJpaEntity entity = entity();
+        ReflectionTestUtils.setField(entity, "id", 5L);
+        when(statuses.findAllByContextOrderByIdAsc("JOBS")).thenReturn(List.of(pending));
+        when(jobs.findAllByTechnicianId(eq(3L), any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(entity)));
+        when(jobs.findByIdAndTechnicianId(5L, 3L)).thenReturn(Optional.of(entity));
+
+        assertEquals(1, adapter.findAllByTechnicianId(3L, 0, 20).content().size());
+        assertEquals(5L, adapter.findByIdAndTechnicianId(5L, 3L).orElseThrow().id());
+        verify(jobs).findAllByTechnicianId(eq(3L),
+                any(org.springframework.data.domain.Pageable.class));
+    }
+
+    @Test
     void resolvesRevisionAuthorizationAndFinalPointer() {
         WorkOrderRevisionJpaEntity revision = new WorkOrderRevisionJpaEntity(1L, 1, 21L, 3L,
                 null, null, BigDecimal.ONE, new BigDecimal("100.00"), true,

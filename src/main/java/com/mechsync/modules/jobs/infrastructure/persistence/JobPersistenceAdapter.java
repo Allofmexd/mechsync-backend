@@ -100,7 +100,8 @@ public class JobPersistenceAdapter implements JobRepositoryPort {
 
     @Override
     public JobPage findAll(int page, int size) {
-        Page<JobJpaEntity> result = jobs.findAll(PageRequest.of(page, size));
+        Page<JobJpaEntity> result = jobs.findAll(PageRequest.of(page, size,
+                org.springframework.data.domain.Sort.by("id").ascending()));
         Map<Long, JobStatus> statusMap = statusMap();
         return new JobPage(result.getContent().stream()
                 .map(value -> toDomain(value, statusMap)).toList(), page, size,
@@ -108,9 +109,27 @@ public class JobPersistenceAdapter implements JobRepositoryPort {
     }
 
     @Override
+    public JobPage findAllByTechnicianId(Long technicianId, int page, int size) {
+        Page<JobJpaEntity> result = jobs.findAllByTechnicianId(technicianId,
+                PageRequest.of(page, size,
+                        org.springframework.data.domain.Sort.by("id").ascending()));
+        Map<Long, JobStatus> statusMap = statusMap();
+        return new JobPage(result.getContent().stream()
+                .map(value -> toDomain(value, statusMap)).toList(), result.getNumber(),
+                result.getSize(), result.getTotalElements(), result.getTotalPages());
+    }
+
+    @Override
     public Optional<Job> findById(Long id) {
         Map<Long, JobStatus> statusMap = statusMap();
         return jobs.findById(id).map(value -> toDomain(value, statusMap));
+    }
+
+    @Override
+    public Optional<Job> findByIdAndTechnicianId(Long id, Long technicianId) {
+        Map<Long, JobStatus> statusMap = statusMap();
+        return jobs.findByIdAndTechnicianId(id, technicianId)
+                .map(value -> toDomain(value, statusMap));
     }
 
     @Override

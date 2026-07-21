@@ -10,6 +10,9 @@ import com.mechsync.modules.auth.infrastructure.security.JwtService;
 import com.mechsync.modules.jobs.application.dto.JobPage;
 import com.mechsync.modules.jobs.application.port.in.*;
 import com.mechsync.modules.jobs.domain.model.*;
+import com.mechsync.modules.jobs.domain.exception.JobNotFoundException;
+import com.mechsync.modules.technicians.application.port.in.ResolveAuthenticatedTechnicianUseCase;
+import com.mechsync.modules.technicians.domain.exception.TechnicianProfileRequiredException;
 import com.mechsync.shared.infrastructure.config.SecurityConfig;
 import com.mechsync.shared.infrastructure.security.*;
 import com.mechsync.shared.web.controller.GlobalExceptionHandler;
@@ -37,18 +40,49 @@ class JobControllerTest {
     @MockitoBean JobQueryUseCase query;
     @MockitoBean CreateJobUseCase create;
     @MockitoBean JobWorkflowUseCase workflow;
+    @MockitoBean ResolveAuthenticatedTechnicianUseCase technicianResolver;
 
     @Test void noTokenIs401() throws Exception {
         mvc.perform(get("/api/v1/jobs")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/jobs/assigned-to-me"))
+                .andExpect(status().isUnauthorized());
     }
 
-    @Test void clientAndTechnicianAreForbidden() throws Exception {
+    @Test void clientIsForbiddenAndTechnicianCannotUseGlobalOrMutations() throws Exception {
         token("client", "CLIENTE");
         token("tech", "TECNICO");
         mvc.perform(auth(get("/api/v1/jobs"), "client")).andExpect(status().isForbidden());
+        mvc.perform(auth(get("/api/v1/jobs/assigned-to-me"), "client"))
+                .andExpect(status().isForbidden());
         mvc.perform(auth(get("/api/v1/jobs"), "tech")).andExpect(status().isForbidden());
         mvc.perform(auth(patch("/api/v1/jobs/1/start"), "tech"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test void technicianWithoutProfileGetsControlled403() throws Exception {
+        token("tech", "TECNICO");
+        when(technicianResolver.resolveId(any()))
+                .thenThrow(new TechnicianProfileRequiredException());
+
+        mvc.perform(auth(get("/api/v1/jobs/assigned-to-me"), "tech"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test void technicianListsAndReadsOnlyAssignedJobs() throws Exception {
+        token("tech", "TECNICO");
+        when(technicianResolver.resolveId(any())).thenReturn(3L);
+        when(query.listAssignedTo(3L, 0, 20))
+                .thenReturn(new JobPage(List.of(job()), 0, 20, 1, 1));
+        when(query.getAssignedTo(1L, 3L)).thenReturn(job());
+        when(query.getAssignedTo(99L, 3L)).thenThrow(new JobNotFoundException(99L));
+
+        mvc.perform(auth(get("/api/v1/jobs/assigned-to-me"), "tech"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1));
+        mvc.perform(auth(get("/api/v1/jobs/1"), "tech"))
+                .andExpect(status().isOk());
+        mvc.perform(auth(get("/api/v1/jobs/99"), "tech"))
+                .andExpect(status().isNotFound());
     }
 
     @Test void administratorCanUseAllEndpoints() throws Exception {
@@ -75,6 +109,7 @@ class JobControllerTest {
         mvc.perform(auth(patch("/api/v1/jobs/1/cancel").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"cancellationNotes\":\"Customer decision\"}"), "admin"))
                 .andExpect(status().isOk());
+        org.mockito.Mockito.verifyNoInteractions(technicianResolver);
     }
 
     @Test void invalidMoneyPayloadIs400() throws Exception {

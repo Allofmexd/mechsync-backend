@@ -2,9 +2,13 @@ package com.mechsync.modules.workorders.infrastructure.repository;
 import com.mechsync.modules.workorders.infrastructure.persistence.WorkOrderJpaEntity;
 import jakarta.persistence.LockModeType;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 public interface WorkOrderJpaRepository extends JpaRepository<WorkOrderJpaEntity,Long> {
+ Page<WorkOrderJpaEntity> findAllByTechnicianId(Long technicianId,Pageable pageable);
+ Optional<WorkOrderJpaEntity> findByIdAndTechnicianId(Long id,Long technicianId);
  @Lock(LockModeType.PESSIMISTIC_WRITE)
  @Query("SELECT w FROM WorkOrderJpaEntity w WHERE w.id=:id")
  Optional<WorkOrderJpaEntity> findByIdForUpdate(@Param("id") Long id);

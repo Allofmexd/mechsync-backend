@@ -1,3 +1,6 @@
 package com.mechsync.modules.workorders.application.port.in;
 import com.mechsync.modules.workorders.application.dto.WorkOrderPage;
-public interface ListWorkOrdersUseCase { WorkOrderPage list(int page,int size); }
+public interface ListWorkOrdersUseCase {
+    WorkOrderPage list(int page,int size);
+    WorkOrderPage listAssignedTo(Long technicianId,int page,int size);
+}

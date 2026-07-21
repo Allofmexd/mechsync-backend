@@ -13,6 +13,8 @@ import com.mechsync.modules.servicereports.application.port.in.*;
 import com.mechsync.modules.servicereports.domain.exception.ServiceReportNotFoundException;
 import com.mechsync.modules.servicereports.domain.exception.ServiceReportPdfGenerationException;
 import com.mechsync.modules.servicereports.domain.model.*;
+import com.mechsync.modules.technicians.application.port.in.ResolveAuthenticatedTechnicianUseCase;
+import com.mechsync.modules.technicians.domain.exception.TechnicianProfileRequiredException;
 import com.mechsync.shared.infrastructure.config.SecurityConfig;
 import com.mechsync.shared.infrastructure.security.*;
 import com.mechsync.shared.web.controller.GlobalExceptionHandler;
@@ -40,31 +42,78 @@ class ServiceReportControllerTest {
     @MockitoBean ServiceReportQueryUseCase query;
     @MockitoBean CreateServiceReportUseCase create;
     @MockitoBean GenerateServiceReportPdfUseCase pdf;
+    @MockitoBean ResolveAuthenticatedTechnicianUseCase technicianResolver;
 
     @Test
     void noTokenIs401() throws Exception {
         mvc.perform(get("/api/v1/service-reports")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/service-reports/assigned-to-me"))
+                .andExpect(status().isUnauthorized());
         mvc.perform(get("/api/v1/jobs/1/service-report")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/v1/service-reports/1/pdf"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void clientAndTechnicianAreForbidden() throws Exception {
+    void clientIsForbiddenAndTechnicianCannotUseGlobalListOrCreate() throws Exception {
         token("client", "CLIENTE");
         token("tech", "TECNICO");
         mvc.perform(auth(get("/api/v1/service-reports"), "client"))
+                .andExpect(status().isForbidden());
+        mvc.perform(auth(get("/api/v1/service-reports/assigned-to-me"), "client"))
                 .andExpect(status().isForbidden());
         mvc.perform(auth(get("/api/v1/service-reports"), "tech"))
                 .andExpect(status().isForbidden());
         mvc.perform(auth(get("/api/v1/service-reports/1/pdf"), "client"))
                 .andExpect(status().isForbidden());
-        mvc.perform(auth(get("/api/v1/service-reports/1/pdf"), "tech"))
-                .andExpect(status().isForbidden());
         mvc.perform(auth(post("/api/v1/service-reports")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"jobId\":1,\"finalDescription\":\"Done\"}"), "tech"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void technicianWithoutProfileGetsControlled403() throws Exception {
+        token("tech", "TECNICO");
+        when(technicianResolver.resolveId(any()))
+                .thenThrow(new TechnicianProfileRequiredException());
+
+        mvc.perform(auth(get("/api/v1/service-reports/assigned-to-me"), "tech"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void technicianCanReadAndDownloadOnlyAssignedReports() throws Exception {
+        token("tech", "TECNICO");
+        ServiceReport report = report();
+        byte[] content = "%PDF-1.7 assigned".getBytes(
+                java.nio.charset.StandardCharsets.US_ASCII);
+        when(technicianResolver.resolveId(any())).thenReturn(3L);
+        when(query.listAssignedTo(3L, 0, 20))
+                .thenReturn(new ServiceReportPage(List.of(report), 0, 20, 1, 1));
+        when(query.getAssignedTo(9L, 3L)).thenReturn(report);
+        when(query.getByJobIdAssignedTo(1L, 3L)).thenReturn(report);
+        when(pdf.generateAssignedTo(9L, 3L)).thenReturn(
+                new GeneratedServiceReportPdf("service-report-9.pdf", content));
+        when(query.getAssignedTo(99L, 3L))
+                .thenThrow(new ServiceReportNotFoundException(99L));
+        when(pdf.generateAssignedTo(99L, 3L))
+                .thenThrow(new ServiceReportNotFoundException(99L));
+
+        mvc.perform(auth(get("/api/v1/service-reports/assigned-to-me"), "tech"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalElements").value(1));
+        mvc.perform(auth(get("/api/v1/service-reports/9"), "tech"))
+                .andExpect(status().isOk());
+        mvc.perform(auth(get("/api/v1/jobs/1/service-report"), "tech"))
+                .andExpect(status().isOk());
+        mvc.perform(auth(get("/api/v1/service-reports/9/pdf"), "tech"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_PDF));
+        mvc.perform(auth(get("/api/v1/service-reports/99"), "tech"))
+                .andExpect(status().isNotFound());
+        mvc.perform(auth(get("/api/v1/service-reports/99/pdf"), "tech"))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -125,6 +174,7 @@ class ServiceReportControllerTest {
                         + "\"customerConfirmation\":true}"), "admin"))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "/api/v1/service-reports/9"));
+        org.mockito.Mockito.verifyNoInteractions(technicianResolver);
     }
 
     @Test

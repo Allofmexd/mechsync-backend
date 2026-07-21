@@ -59,6 +59,17 @@ class TechnicianPersistenceAdapterTest {
     }
 
     @Test
+    void findsTechnicianByAuthenticatedUserId() {
+        prepareProjection();
+        when(repository.findDetailsByUserId(7L)).thenReturn(Optional.of(projection));
+
+        Optional<Technician> result = adapter.findByUserId(7L);
+
+        assertTrue(result.isPresent());
+        assertEquals(1L, result.orElseThrow().id());
+    }
+
+    @Test
     void convertsValidationCountsToFlags() {
         when(repository.countUsersById(7L)).thenReturn(1L);
         when(repository.countUsersById(99L)).thenReturn(0L);

@@ -54,6 +54,30 @@ class GenerateServiceReportPdfServiceTest {
     }
 
     @Test
+    void generatesPdfOnlyWhenReportIsAssignedToTechnician() {
+        ServiceReportPdfData data = data(List.of(), List.of());
+        byte[] bytes = "%PDF-1.7".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        when(dataPort.findPdfDataByReportIdAndTechnicianId(9L, 3L))
+                .thenReturn(Optional.of(data));
+        when(generator.generate(data)).thenReturn(bytes);
+
+        var result = service.generateAssignedTo(9L, 3L);
+
+        assertArrayEquals(bytes, result.content());
+        verify(dataPort).findPdfDataByReportIdAndTechnicianId(9L, 3L);
+    }
+
+    @Test
+    void foreignReportPdfIsHiddenAsNotFound() {
+        when(dataPort.findPdfDataByReportIdAndTechnicianId(9L, 4L))
+                .thenReturn(Optional.empty());
+
+        assertThrows(ServiceReportNotFoundException.class,
+                () -> service.generateAssignedTo(9L, 4L));
+        verifyNoInteractions(generator);
+    }
+
+    @Test
     void rejectsEmptyGeneratorResult() {
         ServiceReportPdfData data = data(List.of(), List.of());
         when(dataPort.findPdfDataByReportId(9L)).thenReturn(Optional.of(data));

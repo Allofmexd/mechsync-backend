@@ -10,19 +10,22 @@ Todos los endpoints permanecen bajo `/api/v1`. No existe `/api/v2`.
 
 ## Autorizacion
 
-En esta fase todos los endpoints requieren `ADMINISTRADOR`.
+`ADMINISTRADOR` conserva lectura, creación y PDF globales. `TECNICO` puede listar reportes mediante
+`GET /api/v1/service-reports/assigned-to-me`, consultar un reporte y descargar su PDF solo cuando el
+Job relacionado está asignado a su perfil. El filtro usa `service_reports.job_id` y
+`jobs.technician_id` en repositorio. Un reporte o Job ajeno responde `404`.
 
 - Sin JWT: `401 Unauthorized`.
-- `TECNICO` y `CLIENTE`: `403 Forbidden`.
-
-La lectura para tecnicos queda pendiente hasta aplicar aislamiento seguro por asignacion. El portal
-cliente queda fuera del MVP actual.
+- `CLIENTE`: `403 Forbidden`.
+- `TECNICO` sin perfil: `403 Forbidden`.
+- Crear reportes continúa reservado a `ADMINISTRADOR`.
 
 ## Endpoints
 
 | Metodo | Ruta | Descripcion |
 |---|---|---|
 | GET | `/api/v1/service-reports?page=0&size=20` | Lista paginada, ordenada por ID descendente |
+| GET | `/api/v1/service-reports/assigned-to-me?page=0&size=20` | Lista paginada de los Jobs del técnico |
 | GET | `/api/v1/service-reports/{id}` | Consulta por ID |
 | GET | `/api/v1/service-reports/{id}/pdf` | Genera y descarga el PDF del reporte |
 | GET | `/api/v1/jobs/{jobId}/service-report` | Consulta el reporte unico de un Job |
@@ -86,8 +89,8 @@ No se exponen entidades JPA, tokens, hashes ni credenciales.
 ## Descarga PDF
 
 `GET /api/v1/service-reports/{id}/pdf` genera el documento en memoria para un reporte existente.
-Requiere rol `ADMINISTRADOR`; sin JWT responde `401` y `TECNICO`/`CLIENTE` reciben `403`.
-Un ID inexistente responde `404`.
+`ADMINISTRADOR` descarga cualquier reporte; `TECNICO`, únicamente uno relacionado con su Job. Sin
+JWT responde `401`, `CLIENTE` recibe `403` y un ID inexistente o ajeno al técnico responde `404`.
 
 La respuesta exitosa es binaria:
 
@@ -119,4 +122,21 @@ almacenamiento S3, firmas digitales, imagenes o evidencias.
 - correo, firmas digitales e imagenes;
 - recomendaciones estructuradas, porque la columna no existe;
 - edicion posterior al cierre;
-- lectura aislada para tecnicos o clientes.
+- lectura para clientes.
+
+## Prueba de integración MySQL del listado técnico
+
+`ServiceReportJpaRepositoryMySqlIT` ejecuta la consulta nativa paginada contra la base QA real.
+La prueba es read-only, exige que `MECHSYNC_DB_URL` apunte exactamente a
+`localhost:3307/mechsync_security_qa` y falla antes de iniciar si el destino es diferente. Valida
+filtrado por técnico, orden descendente por `id_service_reports`, paginación, `totalElements` y
+exclusión cruzada entre dos técnicos.
+
+El nombre `*IT` la mantiene separada de la suite unitaria normal. Debe ejecutarse explícitamente,
+con el túnel QA activo y las variables locales cargadas:
+
+```powershell
+mvn "-Dtest=ServiceReportJpaRepositoryMySqlIT" test
+```
+
+No debe ejecutarse contra `mechsync_db`, H2 ni una base distinta de la copia QA autorizada.

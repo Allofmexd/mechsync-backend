@@ -10,11 +10,16 @@ La relación raíz es `vehicleIntakeId`; no se almacenan ni duplican `customer_i
 
 | Método | Ruta | Descripción | Roles |
 |---|---|---|---|
-| GET | `/api/v1/work-orders` | Lista paginada | ADMINISTRADOR, TECNICO |
-| GET | `/api/v1/work-orders/{id}` | Consulta por ID | ADMINISTRADOR, TECNICO |
-| POST | `/api/v1/work-orders` | Crea una planificación/cotización | ADMINISTRADOR, TECNICO |
-| PUT | `/api/v1/work-orders/{id}` | Actualiza planificación/cotización | ADMINISTRADOR, TECNICO |
+| GET | `/api/v1/work-orders` | Lista paginada global | ADMINISTRADOR |
+| GET | `/api/v1/work-orders/assigned-to-me` | Lista paginada asignada | TECNICO |
+| GET | `/api/v1/work-orders/{id}` | Consulta global o asignada | ADMINISTRADOR, TECNICO |
+| POST | `/api/v1/work-orders` | Crea una planificación/cotización | ADMINISTRADOR |
+| PUT | `/api/v1/work-orders/{id}` | Actualiza planificación/cotización | ADMINISTRADOR |
 | DELETE | `/api/v1/work-orders/{id}` | Elimina si no tiene dependencias | ADMINISTRADOR |
+
+El listado técnico se filtra en repositorio por el Technician ID resuelto desde el usuario del JWT.
+En el detalle, un ID asignado a otro técnico responde `404`. `TECNICO` no puede usar el listado
+global ni enviar un Technician ID para ampliar su alcance. Un técnico sin perfil recibe `403`.
 
 ## Campos y validaciones
 

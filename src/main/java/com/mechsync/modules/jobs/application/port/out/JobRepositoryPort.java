@@ -16,7 +16,9 @@ public interface JobRepositoryPort {
     Long requireStatusId(JobStatus status);
     Job insert(Job job, Long statusId);
     JobPage findAll(int page, int size);
+    JobPage findAllByTechnicianId(Long technicianId, int page, int size);
     Optional<Job> findById(Long id);
+    Optional<Job> findByIdAndTechnicianId(Long id, Long technicianId);
     Optional<Job> findByIdForUpdate(Long id);
     Job update(Job job, Long statusId);
     void updateActualSubtotal(Long jobId, BigDecimal actualSubtotal);

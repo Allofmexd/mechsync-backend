@@ -4,4 +4,5 @@ import com.mechsync.modules.servicereports.application.dto.GeneratedServiceRepor
 
 public interface GenerateServiceReportPdfUseCase {
     GeneratedServiceReportPdf generate(Long reportId);
+    GeneratedServiceReportPdf generateAssignedTo(Long reportId, Long technicianId);
 }

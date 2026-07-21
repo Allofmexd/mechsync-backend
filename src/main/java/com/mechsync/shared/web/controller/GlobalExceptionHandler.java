@@ -44,6 +44,7 @@ import com.mechsync.modules.technicians.domain.exception.TechnicianNotFoundExcep
 import com.mechsync.modules.technicians.domain.exception.TechnicianSpecialtyNotFoundException;
 import com.mechsync.modules.technicians.domain.exception.TechnicianUserNotFoundException;
 import com.mechsync.modules.technicians.domain.exception.TechnicianUserRoleRequiredException;
+import com.mechsync.modules.technicians.domain.exception.TechnicianProfileRequiredException;
 import com.mechsync.modules.servicereports.domain.exception.ServiceReportConflictException;
 import com.mechsync.modules.servicereports.domain.exception.ServiceReportJobNotFoundException;
 import com.mechsync.modules.servicereports.domain.exception.ServiceReportNotFoundException;
@@ -96,6 +97,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<ErrorResponse>> handleAccessDenied() {
         return error(HttpStatus.FORBIDDEN, "Forbidden");
+    }
+
+    @ExceptionHandler(TechnicianProfileRequiredException.class)
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleTechnicianProfileRequired(
+            TechnicianProfileRequiredException exception) {
+        return error(HttpStatus.FORBIDDEN, exception.getMessage());
     }
 
     @ExceptionHandler({
