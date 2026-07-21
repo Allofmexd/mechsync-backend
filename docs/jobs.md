@@ -122,13 +122,20 @@ Permite `PENDIENTE → CANCELADO` y `EN_PROCESO → CANCELADO`, asigna `cancelle
 Estas líneas representan lo realmente ejecutado o utilizado en el Job. Son independientes de las
 líneas snapshot de la Work Order Revision aprobada y nunca modifican la cotización autorizada.
 
-Todos los endpoints requieren `ADMINISTRADOR`:
+Los endpoints de lectura permiten `ADMINISTRADOR` y `TECNICO`:
 
 - `GET /api/v1/jobs/{jobId}/services`;
+- `GET /api/v1/jobs/{jobId}/parts`.
+
+Para `TECNICO`, el backend resuelve el perfil desde el JWT y primero verifica
+`jobs.id_jobs + jobs.technician_id`. Un Job ajeno o inexistente responde `404`; no se acepta
+`technicianId` desde el cliente. Un técnico sin perfil recibe `403`.
+
+Las mutaciones continúan reservadas a `ADMINISTRADOR`:
+
 - `POST /api/v1/jobs/{jobId}/services`;
 - `PUT /api/v1/jobs/{jobId}/services/{lineId}`;
 - `DELETE /api/v1/jobs/{jobId}/services/{lineId}`;
-- `GET /api/v1/jobs/{jobId}/parts`;
 - `POST /api/v1/jobs/{jobId}/parts`;
 - `PUT /api/v1/jobs/{jobId}/parts/{lineId}`;
 - `DELETE /api/v1/jobs/{jobId}/parts/{lineId}`.
@@ -243,3 +250,10 @@ duplicidad o conflicto concurrente responde `409`; datos inválidos responden `4
 - Service Reports;
 - PDF, dashboards, frontend, inventario y portal cliente;
 - notas por línea, porque el esquema actual no ofrece esa columna.
+
+## Prueba MySQL QA de ownership de líneas
+
+`JobLineOwnershipMySqlIT` ejecuta las consultas reales contra la copia aislada
+`localhost:3307/mechsync_security_qa`. Es read-only y falla antes de iniciar si el destino o usuario
+no corresponde al ambiente QA. Valida dos técnicos, ownership cruzado de Jobs y que servicios y
+piezas devueltos pertenecen únicamente al `job_id` consultado.

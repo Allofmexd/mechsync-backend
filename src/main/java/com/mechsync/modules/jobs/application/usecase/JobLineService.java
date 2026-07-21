@@ -42,6 +42,12 @@ public class JobLineService implements JobLineUseCase {
     }
 
     @Override
+    public List<JobServiceLine> listServicesAssignedTo(Long jobId, Long technicianId) {
+        requireAssignedJob(jobId, technicianId);
+        return lines.findServicesByJobId(jobId);
+    }
+
+    @Override
     @Transactional
     public JobServiceLine addService(UpsertJobServiceLineCommand command) {
         requireMutableJob(command.jobId());
@@ -98,6 +104,12 @@ public class JobLineService implements JobLineUseCase {
     }
 
     @Override
+    public List<JobPartLine> listPartsAssignedTo(Long jobId, Long technicianId) {
+        requireAssignedJob(jobId, technicianId);
+        return lines.findPartsByJobId(jobId);
+    }
+
+    @Override
     @Transactional
     public JobPartLine addPart(UpsertJobPartLineCommand command) {
         requireMutableJob(command.jobId());
@@ -145,6 +157,11 @@ public class JobLineService implements JobLineUseCase {
 
     private Job requireJob(Long jobId) {
         return jobs.findById(jobId).orElseThrow(() -> new JobNotFoundException(jobId));
+    }
+
+    private Job requireAssignedJob(Long jobId, Long technicianId) {
+        return jobs.findByIdAndTechnicianId(jobId, technicianId)
+                .orElseThrow(() -> new JobNotFoundException(jobId));
     }
 
     private void requireMutableJob(Long jobId) {

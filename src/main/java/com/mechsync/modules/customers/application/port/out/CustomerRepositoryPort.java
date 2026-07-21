@@ -10,9 +10,13 @@ public interface CustomerRepositoryPort {
 
     Optional<Customer> findById(Long customerId);
 
+    Optional<Customer> findByUserId(Long userId);
+
     boolean existsByUserId(Long userId);
 
     boolean userExists(Long userId);
+
+    boolean userHasRole(Long userId, String roleName);
 
     boolean hasVehicles(Long customerId);
 

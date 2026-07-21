@@ -18,6 +18,7 @@ import com.mechsync.modules.users.domain.exception.DuplicateUserEmailException;
 import com.mechsync.modules.users.domain.exception.RoleNotFoundException;
 import com.mechsync.modules.users.domain.exception.SelfRoleChangeNotAllowedException;
 import com.mechsync.modules.users.domain.exception.UserNotFoundException;
+import com.mechsync.modules.users.domain.exception.UserCustomerRoleConflictException;
 import com.mechsync.modules.users.domain.model.Role;
 import com.mechsync.modules.users.domain.model.User;
 import java.time.LocalDateTime;
@@ -131,12 +132,40 @@ class UserServiceTest {
         when(userRepository.findById(2L)).thenReturn(Optional.of(userWithId(2L)));
         Role technician = new Role(2L, "TECNICO");
         when(roleRepository.findByName("TECNICO")).thenReturn(Optional.of(technician));
+        when(userRepository.hasCustomerProfile(2L)).thenReturn(false);
         when(userRepository.save(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         User result = service.changeRole(new ChangeUserRoleCommand(2L, 1L, "TECNICO"));
 
         assertEquals(Set.of(technician), result.roles());
         assertTrue(result.updatedAt() != null);
+    }
+
+    @Test
+    void cannotAssignNonCustomerRoleWhileCustomerProfileExists() {
+        User customer = new User(2L, "Client", "Local", null, "client@mechsync.local",
+                "existing-hash", Set.of(new Role(3L, "CLIENTE")),
+                LocalDateTime.of(2026, 1, 1, 12, 0), null);
+        when(userRepository.findById(2L)).thenReturn(Optional.of(customer));
+        when(roleRepository.findByName("TECNICO")).thenReturn(Optional.of(new Role(2L, "TECNICO")));
+        when(userRepository.hasCustomerProfile(2L)).thenReturn(true);
+
+        assertThrows(UserCustomerRoleConflictException.class,
+                () -> service.changeRole(new ChangeUserRoleCommand(2L, 1L, "TECNICO")));
+        verify(userRepository, never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void assigningCustomerRoleCanRepairAnomalousCustomerAssociation() {
+        when(userRepository.findById(2L)).thenReturn(Optional.of(userWithId(2L)));
+        Role customer = new Role(3L, "CLIENTE");
+        when(roleRepository.findByName("CLIENTE")).thenReturn(Optional.of(customer));
+        when(userRepository.save(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        User result = service.changeRole(new ChangeUserRoleCommand(2L, 1L, "CLIENTE"));
+
+        assertEquals(Set.of(customer), result.roles());
+        verify(userRepository, never()).hasCustomerProfile(2L);
     }
 
     private User user() {

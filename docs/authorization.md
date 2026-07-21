@@ -12,6 +12,7 @@ Technician ID.
 | Perfil Technician | `GET /api/v1/technicians` | `GET /api/v1/technicians/me` |
 | Work Orders | `GET /api/v1/work-orders` | `GET /api/v1/work-orders/assigned-to-me` |
 | Jobs | `GET /api/v1/jobs` | `GET /api/v1/jobs/assigned-to-me` |
+| Líneas reales de Job | GET por Job propio | `GET /api/v1/jobs/{jobId}/services`, `GET /api/v1/jobs/{jobId}/parts` |
 | Service Reports | `GET /api/v1/service-reports` | `GET /api/v1/service-reports/assigned-to-me` |
 
 `ADMINISTRADOR` conserva los endpoints globales y no necesita un perfil Technician. `CLIENTE`

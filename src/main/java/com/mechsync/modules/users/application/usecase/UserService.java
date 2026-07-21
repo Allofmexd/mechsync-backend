@@ -19,6 +19,7 @@ import com.mechsync.modules.users.domain.exception.InvalidUserRoleException;
 import com.mechsync.modules.users.domain.exception.RoleNotFoundException;
 import com.mechsync.modules.users.domain.exception.SelfRoleChangeNotAllowedException;
 import com.mechsync.modules.users.domain.exception.UserNotFoundException;
+import com.mechsync.modules.users.domain.exception.UserCustomerRoleConflictException;
 import com.mechsync.modules.users.domain.model.Role;
 import com.mechsync.modules.users.domain.model.User;
 import com.mechsync.shared.domain.constant.SystemRole;
@@ -127,6 +128,10 @@ public class UserService implements
         }
         User current = getById(command.userId());
         Role role = loadRole(command.role());
+        if (!SystemRole.CLIENTE.name().equals(role.name())
+                && userRepository.hasCustomerProfile(current.id())) {
+            throw new UserCustomerRoleConflictException(current.id());
+        }
         return userRepository.save(new User(
                 current.id(),
                 current.firstName(),

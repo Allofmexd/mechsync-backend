@@ -3,8 +3,10 @@ package com.mechsync.modules.jobs.web.controller;
 import com.mechsync.modules.jobs.application.dto.UpsertJobPartLineCommand;
 import com.mechsync.modules.jobs.application.dto.UpsertJobServiceLineCommand;
 import com.mechsync.modules.jobs.application.port.in.JobLineUseCase;
+import com.mechsync.modules.auth.domain.model.AuthenticatedUser;
 import com.mechsync.modules.jobs.domain.model.JobPartLine;
 import com.mechsync.modules.jobs.domain.model.JobServiceLine;
+import com.mechsync.modules.technicians.application.port.in.ResolveAuthenticatedTechnicianUseCase;
 import com.mechsync.shared.web.ApiPaths;
 import com.mechsync.shared.web.response.ApiResponse;
 import jakarta.validation.Valid;
@@ -13,6 +15,7 @@ import java.net.URI;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,22 +29,30 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @Validated
 @RequestMapping(ApiPaths.JOBS + "/{jobId}")
-@PreAuthorize("hasRole('ADMINISTRADOR')")
 public class JobLineController {
     private final JobLineUseCase useCase;
+    private final ResolveAuthenticatedTechnicianUseCase technicianResolver;
 
-    public JobLineController(JobLineUseCase useCase) {
+    public JobLineController(JobLineUseCase useCase,
+            ResolveAuthenticatedTechnicianUseCase technicianResolver) {
         this.useCase = useCase;
+        this.technicianResolver = technicianResolver;
     }
 
     @GetMapping("/services")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','TECNICO')")
     public ApiResponse<List<JobServiceLineResponse>> listServices(
-            @PathVariable @Positive Long jobId) {
-        return ApiResponse.ok(useCase.listServices(jobId).stream()
+            @PathVariable @Positive Long jobId,
+            @AuthenticationPrincipal AuthenticatedUser user) {
+        List<JobServiceLine> lines = user.roles().contains("ADMINISTRADOR")
+                ? useCase.listServices(jobId)
+                : useCase.listServicesAssignedTo(jobId, technicianResolver.resolveId(user));
+        return ApiResponse.ok(lines.stream()
                 .map(JobServiceLineResponse::from).toList());
     }
 
     @PostMapping("/services")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<ApiResponse<JobServiceLineResponse>> addService(
             @PathVariable @Positive Long jobId,
             @Valid @RequestBody JobServiceLineRequest request) {
@@ -52,6 +63,7 @@ public class JobLineController {
     }
 
     @PutMapping("/services/{lineId}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ApiResponse<JobServiceLineResponse> updateService(
             @PathVariable @Positive Long jobId,
             @PathVariable @Positive Long lineId,
@@ -61,6 +73,7 @@ public class JobLineController {
     }
 
     @DeleteMapping("/services/{lineId}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<Void> deleteService(
             @PathVariable @Positive Long jobId,
             @PathVariable @Positive Long lineId) {
@@ -69,13 +82,19 @@ public class JobLineController {
     }
 
     @GetMapping("/parts")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','TECNICO')")
     public ApiResponse<List<JobPartLineResponse>> listParts(
-            @PathVariable @Positive Long jobId) {
-        return ApiResponse.ok(useCase.listParts(jobId).stream()
+            @PathVariable @Positive Long jobId,
+            @AuthenticationPrincipal AuthenticatedUser user) {
+        List<JobPartLine> lines = user.roles().contains("ADMINISTRADOR")
+                ? useCase.listParts(jobId)
+                : useCase.listPartsAssignedTo(jobId, technicianResolver.resolveId(user));
+        return ApiResponse.ok(lines.stream()
                 .map(JobPartLineResponse::from).toList());
     }
 
     @PostMapping("/parts")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<ApiResponse<JobPartLineResponse>> addPart(
             @PathVariable @Positive Long jobId,
             @Valid @RequestBody JobPartLineRequest request) {
@@ -86,6 +105,7 @@ public class JobLineController {
     }
 
     @PutMapping("/parts/{lineId}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ApiResponse<JobPartLineResponse> updatePart(
             @PathVariable @Positive Long jobId,
             @PathVariable @Positive Long lineId,
@@ -95,6 +115,7 @@ public class JobLineController {
     }
 
     @DeleteMapping("/parts/{lineId}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<Void> deletePart(
             @PathVariable @Positive Long jobId,
             @PathVariable @Positive Long lineId) {

@@ -9,5 +9,6 @@ public interface UserRepositoryPort {
     Optional<User> findById(Long userId);
     boolean existsByEmail(String email);
     boolean existsByEmailExcludingId(String email, Long userId);
+    boolean hasCustomerProfile(Long userId);
     User save(User user);
 }

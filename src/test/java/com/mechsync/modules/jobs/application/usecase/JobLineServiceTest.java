@@ -16,6 +16,7 @@ import com.mechsync.modules.jobs.domain.exception.InvalidJobException;
 import com.mechsync.modules.jobs.domain.exception.JobConflictException;
 import com.mechsync.modules.jobs.domain.exception.JobLineCatalogNotFoundException;
 import com.mechsync.modules.jobs.domain.exception.JobLineNotFoundException;
+import com.mechsync.modules.jobs.domain.exception.JobNotFoundException;
 import com.mechsync.modules.jobs.domain.model.Job;
 import com.mechsync.modules.jobs.domain.model.JobPartLine;
 import com.mechsync.modules.jobs.domain.model.JobServiceLine;
@@ -192,6 +193,31 @@ class JobLineServiceTest {
         assertEquals(1, service.listServices(1L).size());
         assertEquals(1, service.listParts(1L).size());
         verify(jobs, never()).update(any(), any());
+    }
+
+    @Test
+    void assignedTechnicianListsOnlyLinesFromOwnedJob() {
+        Job owned = job(JobStatus.COMPLETADO);
+        when(jobs.findByIdAndTechnicianId(1L, 3L)).thenReturn(Optional.of(owned));
+        when(lines.findServicesByJobId(1L)).thenReturn(java.util.List.of(serviceLine(10L)));
+        when(lines.findPartsByJobId(1L)).thenReturn(java.util.List.of(partLine(20L)));
+
+        assertEquals(1, service.listServicesAssignedTo(1L, 3L).size());
+        assertEquals(1, service.listPartsAssignedTo(1L, 3L).size());
+        verify(lines).findServicesByJobId(1L);
+        verify(lines).findPartsByJobId(1L);
+    }
+
+    @Test
+    void assignedTechnicianCannotListLinesFromAnotherJob() {
+        when(jobs.findByIdAndTechnicianId(1L, 4L)).thenReturn(Optional.empty());
+
+        assertThrows(JobNotFoundException.class,
+                () -> service.listServicesAssignedTo(1L, 4L));
+        assertThrows(JobNotFoundException.class,
+                () -> service.listPartsAssignedTo(1L, 4L));
+        verify(lines, never()).findServicesByJobId(any());
+        verify(lines, never()).findPartsByJobId(any());
     }
 
     private UpsertJobServiceLineCommand serviceCommand(Long lineId, String quantity, String price) {

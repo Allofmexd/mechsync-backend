@@ -5,12 +5,19 @@ import com.mechsync.modules.customers.domain.exception.CustomerInUseException;
 import com.mechsync.modules.customers.domain.exception.CustomerNotFoundException;
 import com.mechsync.modules.customers.domain.exception.CustomerUserNotFoundException;
 import com.mechsync.modules.customers.domain.exception.DuplicateCustomerException;
+import com.mechsync.modules.customers.domain.exception.CustomerIntegrityException;
+import com.mechsync.modules.customers.domain.exception.CustomerPortalAccessDeniedException;
+import com.mechsync.modules.customers.domain.exception.CustomerProfileRequiredException;
+import com.mechsync.modules.customers.domain.exception.CustomerUserRoleRequiredException;
+import com.mechsync.modules.customerportal.domain.exception.CustomerPortalVehicleNotFoundException;
+import com.mechsync.modules.customerportal.domain.exception.CustomerPortalResourceNotFoundException;
 import com.mechsync.modules.catalogs.domain.exception.InvalidStatusContextException;
 import com.mechsync.modules.users.domain.exception.DuplicateUserEmailException;
 import com.mechsync.modules.users.domain.exception.InvalidUserRoleException;
 import com.mechsync.modules.users.domain.exception.RoleNotFoundException;
 import com.mechsync.modules.users.domain.exception.SelfRoleChangeNotAllowedException;
 import com.mechsync.modules.users.domain.exception.UserNotFoundException;
+import com.mechsync.modules.users.domain.exception.UserCustomerRoleConflictException;
 import com.mechsync.modules.vehicles.domain.exception.DuplicateVehicleException;
 import com.mechsync.modules.vehicles.domain.exception.InvalidVehicleYearException;
 import com.mechsync.modules.vehicles.domain.exception.VehicleCustomerNotFoundException;
@@ -49,6 +56,7 @@ import com.mechsync.modules.servicereports.domain.exception.ServiceReportConflic
 import com.mechsync.modules.servicereports.domain.exception.ServiceReportJobNotFoundException;
 import com.mechsync.modules.servicereports.domain.exception.ServiceReportNotFoundException;
 import com.mechsync.modules.servicereports.domain.exception.ServiceReportStatusNotFoundException;
+import com.mechsync.modules.dashboard.domain.exception.InvalidDashboardPeriodException;
 import com.mechsync.shared.web.response.ApiResponse;
 import com.mechsync.shared.web.response.ErrorResponse;
 import jakarta.validation.ConstraintViolationException;
@@ -65,6 +73,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -106,8 +115,26 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({
+            CustomerPortalAccessDeniedException.class,
+            CustomerProfileRequiredException.class
+    })
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleCustomerPortalForbidden(
+            RuntimeException exception) {
+        return error(HttpStatus.FORBIDDEN, exception.getMessage());
+    }
+
+    @ExceptionHandler(CustomerIntegrityException.class)
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleCustomerIntegrity(
+            CustomerIntegrityException exception) {
+        LOGGER.error("Customer profile integrity failure", exception);
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
+    }
+
+    @ExceptionHandler({
             CustomerNotFoundException.class,
             CustomerUserNotFoundException.class,
+            CustomerPortalVehicleNotFoundException.class,
+            CustomerPortalResourceNotFoundException.class,
             UserNotFoundException.class,
             RoleNotFoundException.class,
             VehicleNotFoundException.class,
@@ -142,8 +169,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
             DuplicateCustomerException.class,
             CustomerInUseException.class,
+            CustomerUserRoleRequiredException.class,
             DuplicateUserEmailException.class,
             SelfRoleChangeNotAllowedException.class,
+            UserCustomerRoleConflictException.class,
             DuplicateVehicleException.class,
             VehicleInUseException.class,
             VehicleIntakeInUseException.class,
@@ -196,6 +225,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({ConstraintViolationException.class, HandlerMethodValidationException.class})
     public ResponseEntity<ApiResponse<ErrorResponse>> handleMethodValidation() {
         return error(HttpStatus.BAD_REQUEST, "Validation failed");
+    }
+
+    @ExceptionHandler(InvalidDashboardPeriodException.class)
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleInvalidDashboardPeriod() {
+        return error(HttpStatus.BAD_REQUEST, "Invalid dashboard period");
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<ErrorResponse>> handleInvalidRequestParameter() {
+        return error(HttpStatus.BAD_REQUEST, "Invalid request parameter");
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
