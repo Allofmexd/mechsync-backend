@@ -17,10 +17,13 @@ public final class ApiPaths {
     public static final String CATALOGS = API_V1 + "/catalogs";
     public static final String CATALOG_STATUSES = CATALOGS + "/statuses";
     public static final String TECHNICIANS = API_V1 + "/technicians";
+    public static final String SPECIALTIES = API_V1 + "/specialties";
     public static final String JOBS = API_V1 + "/jobs";
     public static final String SERVICES = API_V1 + "/services";
     public static final String PARTS = API_V1 + "/parts";
     public static final String SERVICE_REPORTS = API_V1 + "/service-reports";
+    public static final String DASHBOARD = API_V1 + "/dashboard";
+    public static final String CUSTOMER_PORTAL = API_V1 + "/customer-portal";
 
     private ApiPaths() {
     }

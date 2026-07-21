@@ -57,6 +57,11 @@ public class UserPersistenceAdapter implements UserRepositoryPort {
     }
 
     @Override
+    public boolean hasCustomerProfile(Long userId) {
+        return userRepository.countCustomersByUserId(userId) > 0;
+    }
+
+    @Override
     public User save(User user) {
         Set<RoleJpaEntity> roles = user.roles().stream()
                 .map(role -> roleRepository.getReferenceById(role.id()))

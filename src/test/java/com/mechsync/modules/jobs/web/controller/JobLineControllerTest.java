@@ -15,8 +15,11 @@ import com.mechsync.modules.auth.infrastructure.security.JwtService;
 import com.mechsync.modules.jobs.application.port.in.JobLineUseCase;
 import com.mechsync.modules.jobs.domain.exception.JobConflictException;
 import com.mechsync.modules.jobs.domain.exception.JobLineNotFoundException;
+import com.mechsync.modules.jobs.domain.exception.JobNotFoundException;
 import com.mechsync.modules.jobs.domain.model.JobPartLine;
 import com.mechsync.modules.jobs.domain.model.JobServiceLine;
+import com.mechsync.modules.technicians.application.port.in.ResolveAuthenticatedTechnicianUseCase;
+import com.mechsync.modules.technicians.domain.exception.TechnicianProfileRequiredException;
 import com.mechsync.shared.infrastructure.config.SecurityConfig;
 import com.mechsync.shared.infrastructure.security.JwtAuthenticationFilter;
 import com.mechsync.shared.infrastructure.security.RestAccessDeniedHandler;
@@ -45,6 +48,7 @@ class JobLineControllerTest {
     @Autowired MockMvc mvc;
     @MockitoBean JwtService jwt;
     @MockitoBean JobLineUseCase useCase;
+    @MockitoBean ResolveAuthenticatedTechnicianUseCase technicianResolver;
 
     @Test
     void noTokenIs401() throws Exception {
@@ -53,15 +57,74 @@ class JobLineControllerTest {
     }
 
     @Test
-    void clientAndTechnicianAreForbidden() throws Exception {
+    void clientIsForbiddenAndTechnicianMutationsRemainForbidden() throws Exception {
         token("client", "CLIENTE");
         token("tech", "TECNICO");
 
         mvc.perform(auth(get("/api/v1/jobs/1/services"), "client"))
                 .andExpect(status().isForbidden());
+        mvc.perform(auth(get("/api/v1/jobs/1/parts"), "client"))
+                .andExpect(status().isForbidden());
+        mvc.perform(auth(post("/api/v1/jobs/1/services")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(serviceJson()), "tech")).andExpect(status().isForbidden());
+        mvc.perform(auth(put("/api/v1/jobs/1/services/10")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(serviceJson()), "tech")).andExpect(status().isForbidden());
+        mvc.perform(auth(delete("/api/v1/jobs/1/services/10"), "tech"))
+                .andExpect(status().isForbidden());
         mvc.perform(auth(post("/api/v1/jobs/1/parts")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(partJson()), "tech")).andExpect(status().isForbidden());
+        mvc.perform(auth(put("/api/v1/jobs/1/parts/20")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(partJson()), "tech")).andExpect(status().isForbidden());
+        mvc.perform(auth(delete("/api/v1/jobs/1/parts/20"), "tech"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void technicianCanReadLinesFromAssignedJob() throws Exception {
+        token("tech", "TECNICO");
+        when(technicianResolver.resolveId(any())).thenReturn(3L);
+        when(useCase.listServicesAssignedTo(1L, 3L)).thenReturn(List.of(serviceLine()));
+        when(useCase.listPartsAssignedTo(1L, 3L)).thenReturn(List.of(partLine()));
+
+        mvc.perform(auth(get("/api/v1/jobs/1/services"), "tech"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].jobId").value(1))
+                .andExpect(jsonPath("$.data[0].serviceName").value("Transmission service"));
+        mvc.perform(auth(get("/api/v1/jobs/1/parts"), "tech"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].jobId").value(1))
+                .andExpect(jsonPath("$.data[0].partName").value("Transmission filter"));
+    }
+
+    @Test
+    void technicianGets404ForLinesFromAnotherJob() throws Exception {
+        token("tech", "TECNICO");
+        when(technicianResolver.resolveId(any())).thenReturn(3L);
+        when(useCase.listServicesAssignedTo(99L, 3L))
+                .thenThrow(new JobNotFoundException(99L));
+        when(useCase.listPartsAssignedTo(99L, 3L))
+                .thenThrow(new JobNotFoundException(99L));
+
+        mvc.perform(auth(get("/api/v1/jobs/99/services"), "tech"))
+                .andExpect(status().isNotFound());
+        mvc.perform(auth(get("/api/v1/jobs/99/parts"), "tech"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void technicianWithoutProfileGets403() throws Exception {
+        token("tech", "TECNICO");
+        when(technicianResolver.resolveId(any()))
+                .thenThrow(new TechnicianProfileRequiredException());
+
+        mvc.perform(auth(get("/api/v1/jobs/1/services"), "tech"))
+                .andExpect(status().isForbidden());
+        mvc.perform(auth(get("/api/v1/jobs/1/parts"), "tech"))
+                .andExpect(status().isForbidden());
     }
 
     @Test

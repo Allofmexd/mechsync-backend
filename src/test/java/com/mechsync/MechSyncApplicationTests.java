@@ -20,8 +20,10 @@ import com.mechsync.modules.jobs.infrastructure.repository.JobServiceLineJpaRepo
 import com.mechsync.modules.parts.infrastructure.repository.PartCatalogJpaRepository;
 import com.mechsync.modules.services.infrastructure.repository.ServiceCatalogJpaRepository;
 import com.mechsync.modules.servicereports.infrastructure.repository.ServiceReportJpaRepository;
+import com.mechsync.modules.specialties.infrastructure.repository.SpecialtyJpaRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest(properties = {
@@ -37,6 +39,9 @@ class MechSyncApplicationTests {
 
     @MockitoBean
     private DatabaseHealthChecker databaseHealthChecker;
+
+    @MockitoBean
+    private JdbcTemplate jdbcTemplate;
 
     @MockitoBean
     private UserJpaRepository userJpaRepository;
@@ -94,6 +99,9 @@ class MechSyncApplicationTests {
 
     @MockitoBean
     private ServiceReportJpaRepository serviceReportJpaRepository;
+
+    @MockitoBean
+    private SpecialtyJpaRepository specialtyJpaRepository;
 
     @Test
     void contextLoads() {

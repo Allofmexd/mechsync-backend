@@ -10,7 +10,8 @@ Cada revisión conserva snapshots de servicios y piezas. Cambiar posteriormente 
 altera una cotización histórica. Las líneas no tienen endpoints de actualización o eliminación:
 cualquier cambio financiero requiere crear una revisión sucesora.
 
-Esta fase no crea Jobs, Service Reports, archivos PDF ni ejecuta migraciones en AWS o bases reales.
+El módulo no crea Jobs automáticamente: una revisión final aprobada habilita el endpoint administrativo
+de creación de Job. Service Reports pertenecen al cierre posterior. No existe PDF de cotización.
 
 ## Endpoints y autorización
 
@@ -124,7 +125,9 @@ La concurrencia de creación y aprobación se serializa bloqueando la Work Order
 `acceptedByName` y un método activo del catálogo son obligatorios. `acceptedByUserId` es opcional,
 pero debe referir a un usuario existente cuando se envía y nunca sustituye el nombre. Si
 `acceptedAt` se omite, se usa la hora del servidor. Para el método `OTHER`, las notas son
-obligatorias. La aprobación asigna el puntero `finalApprovedRevision` de la Work Order.
+obligatorias. La aprobación asigna el puntero `finalApprovedRevision` de la Work Order. El contrato
+actual registra la aprobación interna y la evidencia de aceptación del cliente en la misma operación
+atómica; no existe un endpoint separado de aceptación en el MVP.
 
 Los endpoints `send`, `reject` y `cancel` no reciben body en esta fase porque el esquema validado no
 incluye columnas persistentes de motivo para estas acciones.
@@ -148,6 +151,6 @@ Los endpoints CRUD existentes de Work Orders se conservan bajo `/api/v1`. Los ca
 existentes no se eliminan ni cambian en esta fase. Hasta retirar de forma planificada el modelo
 legacy, sus importes estimados no deben interpretarse como sustituto de una revisión aprobada.
 
-La creación de Job desde `finalApprovedRevision` y el cierre mediante Service Report pertenecen a
-fases posteriores. Tampoco existe aceptación directa por portal de cliente, generación de PDF ni
-ruta pública `/api/v2`.
+La creación de Job desde `finalApprovedRevision` y el cierre mediante Service Report están disponibles
+en sus módulos administrativos. No existe aceptación directa por portal de cliente, generación de PDF
+de cotización ni ruta pública `/api/v2`.

@@ -17,3 +17,9 @@ temp/
 
 .DS_Store
 Thumbs.db
+
+# Local architecture audit drafts
+docs/architecture/api-completion-gap-audit.md
+docs/architecture/api-completion-action-plan.md
+docs/postman/
+docs/architecture/work-order-revisions-phase-0-readiness.md

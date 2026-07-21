@@ -8,6 +8,8 @@ import com.mechsync.modules.customers.domain.model.Customer;
 import com.mechsync.modules.customers.infrastructure.repository.CustomerJpaRepository;
 import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
+import com.mechsync.modules.customers.domain.exception.CustomerIntegrityException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -40,6 +42,15 @@ public class CustomerPersistenceAdapter implements CustomerRepositoryPort {
     }
 
     @Override
+    public Optional<Customer> findByUserId(Long userId) {
+        try {
+            return repository.findByUserId(userId).map(this::toDomain);
+        } catch (IncorrectResultSizeDataAccessException exception) {
+            throw new CustomerIntegrityException(exception);
+        }
+    }
+
+    @Override
     public boolean existsByUserId(Long userId) {
         return repository.existsByUserId(userId);
     }
@@ -47,6 +58,11 @@ public class CustomerPersistenceAdapter implements CustomerRepositoryPort {
     @Override
     public boolean userExists(Long userId) {
         return repository.countUsersById(userId) > 0;
+    }
+
+    @Override
+    public boolean userHasRole(Long userId, String roleName) {
+        return repository.countUserRoles(userId, roleName) > 0;
     }
 
     @Override

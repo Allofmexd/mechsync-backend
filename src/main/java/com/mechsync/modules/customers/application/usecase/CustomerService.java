@@ -12,9 +12,11 @@ import com.mechsync.modules.customers.application.port.out.CustomerRepositoryPor
 import com.mechsync.modules.customers.domain.exception.CustomerInUseException;
 import com.mechsync.modules.customers.domain.exception.CustomerNotFoundException;
 import com.mechsync.modules.customers.domain.exception.CustomerUserNotFoundException;
+import com.mechsync.modules.customers.domain.exception.CustomerUserRoleRequiredException;
 import com.mechsync.modules.customers.domain.exception.DuplicateCustomerException;
 import com.mechsync.modules.customers.domain.model.Customer;
 import java.time.LocalDateTime;
+import com.mechsync.shared.domain.constant.SystemRole;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +51,9 @@ public class CustomerService implements
     public Customer create(CreateCustomerCommand command) {
         if (!customerRepository.userExists(command.userId())) {
             throw new CustomerUserNotFoundException(command.userId());
+        }
+        if (!customerRepository.userHasRole(command.userId(), SystemRole.CLIENTE.name())) {
+            throw new CustomerUserRoleRequiredException(command.userId());
         }
         if (customerRepository.existsByUserId(command.userId())) {
             throw new DuplicateCustomerException(command.userId());

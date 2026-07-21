@@ -12,6 +12,8 @@ import com.mechsync.modules.customers.application.dto.UpdateCustomerCommand;
 import com.mechsync.modules.customers.application.port.out.CustomerRepositoryPort;
 import com.mechsync.modules.customers.domain.exception.CustomerInUseException;
 import com.mechsync.modules.customers.domain.exception.CustomerNotFoundException;
+import com.mechsync.modules.customers.domain.exception.CustomerUserNotFoundException;
+import com.mechsync.modules.customers.domain.exception.CustomerUserRoleRequiredException;
 import com.mechsync.modules.customers.domain.exception.DuplicateCustomerException;
 import com.mechsync.modules.customers.domain.model.Customer;
 import java.time.LocalDateTime;
@@ -39,6 +41,7 @@ class CustomerServiceTest {
     @Test
     void createsCustomerForExistingUser() {
         when(repository.userExists(2L)).thenReturn(true);
+        when(repository.userHasRole(2L, "CLIENTE")).thenReturn(true);
         when(repository.existsByUserId(2L)).thenReturn(false);
         when(repository.save(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> {
             Customer customer = invocation.getArgument(0);
@@ -55,10 +58,32 @@ class CustomerServiceTest {
     @Test
     void rejectsDuplicateCustomerForSameUser() {
         when(repository.userExists(2L)).thenReturn(true);
+        when(repository.userHasRole(2L, "CLIENTE")).thenReturn(true);
         when(repository.existsByUserId(2L)).thenReturn(true);
 
         assertThrows(DuplicateCustomerException.class,
                 () -> service.create(new CreateCustomerCommand(2L, null)));
+        verify(repository, never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void rejectsMissingUserBeforeCheckingRole() {
+        when(repository.userExists(99L)).thenReturn(false);
+
+        assertThrows(CustomerUserNotFoundException.class,
+                () -> service.create(new CreateCustomerCommand(99L, null)));
+        verify(repository, never()).userHasRole(99L, "CLIENTE");
+        verify(repository, never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void rejectsUserWithoutCustomerRole() {
+        when(repository.userExists(2L)).thenReturn(true);
+        when(repository.userHasRole(2L, "CLIENTE")).thenReturn(false);
+
+        assertThrows(CustomerUserRoleRequiredException.class,
+                () -> service.create(new CreateCustomerCommand(2L, null)));
+        verify(repository, never()).existsByUserId(2L);
         verify(repository, never()).save(org.mockito.ArgumentMatchers.any());
     }
 
